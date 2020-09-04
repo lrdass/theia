@@ -6,6 +6,7 @@ verify_ssl = true
 [dev-packages]
 flake8 = "*"
 black = "*"
+pylint = "*"
 
 [packages]
 pyopengl = "*"
@@ -16,4 +17,4 @@ pillow = "*"
 pyrr = "*"
 
 [requires]
-python_version = "3.8"
+python_version = "3.7"

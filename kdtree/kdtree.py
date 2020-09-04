@@ -39,9 +39,9 @@ def get_point_by_id(tree, point_id):
     ]
 
 
-svg_tree = read_svg_file("./camera_frustum/kdtree/points/points.svg")
-[pivot] = get_point_by_id(svg_tree, "pivot")
-points = get_group_by_id(svg_tree, "points")
+# svg_tree = read_svg_file("./camera_frustum/kdtree/points/points.svg")
+# [pivot] = get_point_by_id(svg_tree, "pivot")
+# points = get_group_by_id(svg_tree, "points")
 
 
 def distance(point1, point2):
@@ -71,7 +71,7 @@ def closest_point(all_points, new_point):
 k = 2
 
 
-def build_kdtree(points, depth=0):
+def build_kdtree(points, depth=0, parent_split=None):
     n = len(points)
     if n <= 0:
         return None
@@ -79,11 +79,27 @@ def build_kdtree(points, depth=0):
     axis = depth % k
 
     sorted_points = sorted(points, key=lambda point: point[axis])
-    return {
-        "point": sorted_points[int(n / 2)],
-        "left": build_kdtree(sorted_points[: int(n / 2)], depth + 1),
-        "right": build_kdtree(sorted_points[int(n / 2) + 1 :], depth + 1),
-    }
+    if n == 1:
+        return {
+            'point': sorted_points.pop()
+        }
+    else:
+        mid_point = int((n - 1) / 2)
+        split_value = sorted_points[mid_point][axis]
+
+        area = {
+            'x': [ - math.inf, math.inf],
+            'y': [ - math.inf, math.inf]
+        }
+
+        no =  {
+            "split": split_value,
+            "left": build_kdtree(sorted_points[: mid_point+1], depth + 1),
+            "right": build_kdtree(sorted_points[mid_point+1 :], depth + 1),
+            # these are bottom-left point and top-right points
+        }
+        return no
+
 
 
 def kdtree_naive_closest_point(root, point, depth=0, best=None):
@@ -174,7 +190,6 @@ def kdtree_search_in_range(root, point1, point2, depth=0, points_inside=[]):
 
 
 def node_region(node, point1, point2):
-    
     pass
 
 
@@ -192,5 +207,18 @@ def report_subtree(tree, points=[]):
     return points
 
 
-kdtree = build_kdtree(points)
-pprint.pprint(kdtree_search_in_range(kdtree, (0, 0), (130, 130)))
+# kdtree = build_kdtree(points)
+kdtree = build_kdtree([
+(-13,8),
+(-11,-7),
+(-8,-1),
+(-8,6),
+(-5,-5),
+(-2,2),
+(2,7),
+(4,-6),
+(6,5),
+(8,-3),
+])
+pprint.pprint(kdtree)
+# pprint.pprint(kdtree_search_in_range(kdtree, (0, 0), (130, 130)))

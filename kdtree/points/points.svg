@@ -7,35 +7,35 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   sodipodi:docname="points.svg"
-   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
-   id="svg8"
-   version="1.1"
-   viewBox="0 0 210 297"
+   width="210mm"
    height="297mm"
-   width="210mm">
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg8"
+   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
+   sodipodi:docname="points.svg">
   <defs
      id="defs2" />
   <sodipodi:namedview
-     inkscape:window-maximized="1"
-     inkscape:window-y="0"
-     inkscape:window-x="0"
-     inkscape:window-height="1051"
-     inkscape:window-width="1920"
-     showborder="false"
-     showgrid="false"
-     inkscape:document-rotation="0"
-     inkscape:current-layer="points"
-     inkscape:document-units="mm"
-     inkscape:cy="613.28908"
-     inkscape:cx="377.14285"
-     inkscape:zoom="0.35"
-     inkscape:pageshadow="2"
-     inkscape:pageopacity="0.0"
-     borderopacity="1.0"
-     bordercolor="#666666"
+     id="base"
      pagecolor="#ffffff"
-     id="base" />
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.35"
+     inkscape:cx="-172.85715"
+     inkscape:cy="613.28908"
+     inkscape:document-units="mm"
+     inkscape:current-layer="points"
+     inkscape:document-rotation="0"
+     showgrid="false"
+     showborder="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1025"
+     inkscape:window-x="0"
+     inkscape:window-y="27"
+     inkscape:window-maximized="1" />
   <metadata
      id="metadata5">
     <rdf:RDF>
@@ -49,75 +49,75 @@
     </rdf:RDF>
   </metadata>
   <g
-     id="points"
+     inkscape:label="Layer 1"
      inkscape:groupmode="layer"
-     inkscape:label="Layer 1">
+     id="points">
+    <circle
+       style="fill:#ff0000;fill-rule:evenodd;stroke-width:0.264583"
+       id="path17"
+       cx="-172.30011"
+       cy="106.97083"
+       r="4.0296659" />
     <circle
        r="4.0296659"
-       cy="106.97083"
-       cx="-172.30011"
-       id="path17"
+       cy="231.92856"
+       cx="173.57098"
+       id="path17-3"
        style="fill:#ff0000;fill-rule:evenodd;stroke-width:0.264583" />
     <circle
-       style="fill:#ff0000;fill-rule:evenodd;stroke-width:0.264583"
-       id="path17-3"
-       cx="173.57098"
-       cy="231.92856"
-       r="4.0296659" />
-    <circle
-       style="fill:#ff0000;fill-rule:evenodd;stroke-width:0.264583"
-       id="path17-6"
-       cx="-68.791664"
+       r="4.0296659"
        cy="118.68452"
+       cx="-68.791664"
+       id="path17-6"
+       style="fill:#ff0000;fill-rule:evenodd;stroke-width:0.264583" />
+    <circle
+       cy="189.34163"
+       cx="16.105516"
+       id="path17-5"
+       style="fill:#ff0000;fill-rule:evenodd;stroke-width:0.264583"
        r="4.0296659" />
     <circle
        r="4.0296659"
-       style="fill:#ff0000;fill-rule:evenodd;stroke-width:0.264583"
-       id="path17-5"
-       cx="16.105516"
-       cy="189.34163" />
-    <circle
-       style="fill:#ff0000;fill-rule:evenodd;stroke-width:0.264583"
-       id="path17-62"
-       cx="164.04167"
        cy="42.333332"
-       r="4.0296659" />
+       cx="164.04167"
+       id="path17-62"
+       style="fill:#00ff00;fill-rule:evenodd;stroke-width:0.264583" />
     <circle
-       style="fill:#ff0000;fill-rule:evenodd;stroke-width:0.264583"
-       id="path17-9"
-       cx="72.571426"
+       r="4.0296659"
        cy="10.583333"
-       r="4.0296659" />
+       cx="72.571426"
+       id="path17-9"
+       style="fill:#00ff00;fill-rule:evenodd;stroke-width:0.264583" />
     <circle
-       style="fill:#ff0000;fill-rule:evenodd;stroke-width:0.264583"
-       id="path17-1"
-       cx="298.6012"
+       r="4.0296659"
        cy="246.44048"
-       r="4.0296659" />
+       cx="298.6012"
+       id="path17-1"
+       style="fill:#ff0000;fill-rule:evenodd;stroke-width:0.264583" />
     <circle
-       style="fill:#ff0000;fill-rule:evenodd;stroke-width:0.264583"
-       id="path17-2"
-       cx="-27.970238"
+       r="4.0296659"
        cy="269.11905"
-       r="4.0296659" />
+       cx="-27.970238"
+       id="path17-2"
+       style="fill:#ff0000;fill-rule:evenodd;stroke-width:0.264583" />
     <circle
-       style="fill:#ff0000;fill-rule:evenodd;stroke-width:0.264583"
-       id="kkkkkk"
-       cx="-161.01785"
+       r="4.0296659"
        cy="254"
-       r="4.0296659" />
+       cx="-161.01785"
+       id="kkkkkk"
+       style="fill:#ff0000;fill-rule:evenodd;stroke-width:0.264583" />
     <rect
-       style="fill:none;stroke:#0000ff;stroke-width:0.489504;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       y="-13.483211"
+       x="45.006897"
+       height="166.57759"
+       width="166.53911"
        id="rect17"
-       width="129.5105"
-       height="129.5105"
-       x="0.24475181"
-       y="0.24475181" />
+       style="fill:none;stroke:#0000ff;stroke-width:0.629532;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
   </g>
   <circle
-     style="fill:#aad400;fill-rule:evenodd;stroke-width:0.264583"
-     id="pivot"
-     cx="83.154762"
+     r="4.0296659"
      cy="142.875"
-     r="4.0296659" />
+     cx="83.154762"
+     id="pivot"
+     style="fill:#00ff00;fill-rule:evenodd;stroke-width:0.264583" />
 </svg>

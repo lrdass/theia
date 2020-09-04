@@ -82,7 +82,7 @@ class Device {
 
     index *= 4;
 
-    this.backBuffer.data[index] = color.r * 255;
+    this.backBuffer.data[index] = color.r * 60;
     this.backBuffer.data[index + 1] = color.g * 255;
     this.backBuffer.data[index + 2] = color.b * 255;
     this.backBuffer.data[index + 3] = color.a * 255;
