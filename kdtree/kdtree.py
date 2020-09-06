@@ -69,8 +69,6 @@ def closest_point(all_points, new_point):
 
 
 k = 2
-
-
 def build_kdtree(points, depth=0, parent_split=None):
     n = len(points)
     if n <= 0:
@@ -86,11 +84,6 @@ def build_kdtree(points, depth=0, parent_split=None):
     else:
         mid_point = int((n - 1) / 2)
         split_value = sorted_points[mid_point][axis]
-
-        area = {
-            'x': [ - math.inf, math.inf],
-            'y': [ - math.inf, math.inf]
-        }
 
         no =  {
             "split": split_value,
@@ -168,44 +161,57 @@ def closer_distante(point, p1, p2):
         return p2
 
 
-def kdtree_search_in_range(root, point1, point2, depth=0, points_inside=[]):
-    """ quais pontos estao dentro de rect ? """
-    if root is None:
-        return None
-    axis = depth % k
+class Interval:
+    class Range:
+        def __init__(self, min_value, max_value):
+            self.min = min_value
+            self.max = max_value     
 
-    splitin_point = root["point"][axis]
-
-    if point1[axis] < splitin_point and point2[axis] < splitin_point:
-        points_inside += report_subtree(root["left"])
-    elif point1[axis] < splitin_point:
-        kdtree_search_in_range(root["left"], point1, point2, depth + 1, points_inside)
-
-    if point1[axis] > splitin_point and point2[axis] > splitin_point:
-        points_inside += report_subtree(root["right"])
-    elif point2[axis] > splitin_point:
-        kdtree_search_in_range(root["right"], point1, point2, depth + 1, points_inside)
-
-    return points_inside
+    x = None
+    y = None
+    
+    def __init__(self, x_range=(0,0), y_range=(0,0)):
+        self.x = self.Range(min(x_range), max(x_range))
+        self.y = self.Range(min(y_range), max(y_range))
+    
+    def __str__(self):
+        return 'x : {} - {}, y : {} - {}'.format(self.x.min, self.x.max, self.y.min, self.y.max)
 
 
-def node_region(node, point1, point2):
+def is_point_inside_query(point, interval=Interval):
+    return point[0] <= interval.x.max and point[0] >= interval.x.min \
+        and point[1] <= interval.y.max and point[1] >= interval.y.min
+    
+def is_area_inside_query(area=Interval, query=Interval):
+    return area.y.min >= query.y.min and area.y.max <= query.y.max  \
+        and area.x.max <= query.x.max and area.x.min >= area.x.min
+
+def is_area_intersects_query(area=Interval, query=Interval):
+    return area.x.max == math.inf and area.x.min == -math.inf \
+         and  area.y.max == math.inf and area.y.min == -math.inf \
+        or query.x.min <= area.x.max <= query.x.max \
+        or query.y.min <= area.y.max <= query.y.max \
+        or query.y.min <= area.y.min <= query.y.max \
+        or query.x.min <= area.x.min <= query.x.max \
+
+def report_subtree(node):
     pass
 
-
-def report_subtree(tree, points=[]):
-    if tree is None:
-        return None
-
-    points.append(tree["point"])
-
-    if tree["left"] is not None:
-        report_subtree(tree["left"], points)
-    elif tree["right"] is not None:
-        report_subtree(tree["right"], points)
-
-    return points
-
+def kdtree_search_in_range(node, query=Interval((-7,3), (-7, 3)), depth=0):
+    """ quais pontos estao dentro de rect ? """
+    if node['point']:
+        if is_point_inside_query(node['point'], query):
+            return node['point']
+    else:
+        if is_area_inside_query(node['left']['area'], query):
+            return report_subtree(node['left'])
+        elif is_area_intersects_query(node['left']['area'], query):
+            kdtree_search_in_range(node['left'], query)
+            
+        if is_area_inside_query(node['right']['area'], query):
+            return report_subtree(node['right'])
+        elif is_area_intersects_query(node['right']['area'], query):
+            kdtree_search_in_range(node['right'], query)
 
 # kdtree = build_kdtree(points)
 kdtree = build_kdtree([
@@ -221,4 +227,10 @@ kdtree = build_kdtree([
 (8,-3),
 ])
 pprint.pprint(kdtree)
+
+area = Interval( (0, 7), (-1, -7) )
+query = Interval((-5, 9), (-4, 6))
+print(is_area_intersects_query(area, query))
+
+# print(kdtree_search_in_range({}))
 # pprint.pprint(kdtree_search_in_range(kdtree, (0, 0), (130, 130)))
