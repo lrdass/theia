@@ -1,3 +1,4 @@
+import copy
 import math
 import xml.etree.ElementTree as ET
 import pprint
@@ -5,6 +6,33 @@ import pprint
 SVG_NAMESPACE_CIRCLE = "{http://www.w3.org/2000/svg}circle"
 SVG_NAMESPACE_RECT = "{http://www.w3.org/2000/svg}rect"
 SVG_NAMESPACE_GROUP = "{http://www.w3.org/2000/svg}g"
+
+
+
+class Interval:
+    class Range:
+        def __init__(self, min_value, max_value):
+            self.min = min_value
+            self.max = max_value     
+    x = None
+    y = None
+    
+    def __init__(self, x_range=(-math.inf,math.inf), y_range=(-math.inf,math.inf)):
+        self.x = self.Range(min(x_range), max(x_range))
+        self.y = self.Range(min(y_range), max(y_range))
+    
+    def __repr__(self):
+        return 'x : [{},{}], y :[{}, {}]'.format(self.x.min, self.x.max, self.y.min, self.y.max)
+    
+    def __getitem__(self, name):
+        return getattr(self, name)
+    def __setitem__(self, name, value):
+        return setattr(self, name, value)
+    def __delitem__(self, name):
+        return delattr(self, name)
+    def __contains__(self, name):
+        return hasattr(self, name)
+
 
 
 def circle_to_point(circle):
@@ -69,12 +97,13 @@ def closest_point(all_points, new_point):
 
 
 k = 2
-def build_kdtree(points, depth=0, parent_split=None):
+def build_kdtree(points, depth=0, area=Interval(), last_split=None):
     n = len(points)
     if n <= 0:
         return None
 
     axis = depth % k
+    axis_name = 'x' if axis == 1 else 'y' 
 
     sorted_points = sorted(points, key=lambda point: point[axis])
     if n == 1:
@@ -84,12 +113,20 @@ def build_kdtree(points, depth=0, parent_split=None):
     else:
         mid_point = int((n - 1) / 2)
         split_value = sorted_points[mid_point][axis]
+        
+        update_area = copy.deepcopy(area) 
+
+        if last_split is not None:
+            if split_value < last_split:
+                update_area[axis_name].min = split_value
+            else:
+                update_area[axis_name].max = split_value
 
         no =  {
             "split": split_value,
-            "left": build_kdtree(sorted_points[: mid_point+1], depth + 1),
-            "right": build_kdtree(sorted_points[mid_point+1 :], depth + 1),
-            # these are bottom-left point and top-right points
+            "left": build_kdtree(sorted_points[: mid_point+1], depth + 1, update_area, split_value),
+            "right": build_kdtree(sorted_points[mid_point+1 :], depth + 1, update_area, split_value),
+            "area": area,
         }
         return no
 
@@ -160,24 +197,6 @@ def closer_distante(point, p1, p2):
     else:
         return p2
 
-
-class Interval:
-    class Range:
-        def __init__(self, min_value, max_value):
-            self.min = min_value
-            self.max = max_value     
-
-    x = None
-    y = None
-    
-    def __init__(self, x_range=(0,0), y_range=(0,0)):
-        self.x = self.Range(min(x_range), max(x_range))
-        self.y = self.Range(min(y_range), max(y_range))
-    
-    def __str__(self):
-        return 'x : {} - {}, y : {} - {}'.format(self.x.min, self.x.max, self.y.min, self.y.max)
-
-
 def is_point_inside_query(point, interval=Interval):
     return point[0] <= interval.x.max and point[0] >= interval.x.min \
         and point[1] <= interval.y.max and point[1] >= interval.y.min
@@ -228,9 +247,6 @@ kdtree = build_kdtree([
 ])
 pprint.pprint(kdtree)
 
-area = Interval( (0, 7), (-1, -7) )
-query = Interval((-5, 9), (-4, 6))
-print(is_area_intersects_query(area, query))
 
 # print(kdtree_search_in_range({}))
 # pprint.pprint(kdtree_search_in_range(kdtree, (0, 0), (130, 130)))
