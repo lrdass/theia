@@ -118,15 +118,15 @@ def build_kdtree(points, depth=0, area=Interval(), last_split=None):
 
         if last_split is not None:
             if split_value < last_split:
-                update_area[axis_name].min = split_value
+                update_area[axis_name].min = last_split
             else:
-                update_area[axis_name].max = split_value
+                update_area[axis_name].max = last_split
 
         no =  {
             "split": split_value,
             "left": build_kdtree(sorted_points[: mid_point+1], depth + 1, update_area, split_value),
             "right": build_kdtree(sorted_points[mid_point+1 :], depth + 1, update_area, split_value),
-            "area": area,
+            "area": update_area,
         }
         return no
 
@@ -213,24 +213,44 @@ def is_area_intersects_query(area=Interval, query=Interval):
         or query.y.min <= area.y.min <= query.y.max \
         or query.x.min <= area.x.min <= query.x.max \
 
-def report_subtree(node):
-    pass
+def report_subtree(node={}, points=[]):
+    try:
+        point = node['point']
+        points.append(point)
+        return points
+    except KeyError:
+        report_subtree(node['left'], points)
+        report_subtree(node['right'], points)
+    
+    return set(points)
 
-def kdtree_search_in_range(node, query=Interval((-7,3), (-7, 3)), depth=0):
+
+def kdtree_search_in_range(node, query=Interval((-7,3), (-7, 3)), depth=0, points=[]):
     """ quais pontos estao dentro de rect ? """
-    if node['point']:
-        if is_point_inside_query(node['point'], query):
-            return node['point']
-    else:
-        if is_area_inside_query(node['left']['area'], query):
-            return report_subtree(node['left'])
-        elif is_area_intersects_query(node['left']['area'], query):
-            kdtree_search_in_range(node['left'], query)
-            
-        if is_area_inside_query(node['right']['area'], query):
-            return report_subtree(node['right'])
-        elif is_area_intersects_query(node['right']['area'], query):
-            kdtree_search_in_range(node['right'], query)
+    try:
+        point = node['point']
+        if is_point_inside_query(point, query):
+            return  points.append(point)
+    except KeyError as not_a_point:
+            left_branch = node['left']
+            try:
+                if is_area_inside_query(left_branch['area'], query):
+                    return points.append(report_subtree(left_branch))
+                elif is_area_intersects_query(left_branch['area'], query):
+                    kdtree_search_in_range(left_branch, query=query, points=points)
+            except KeyError as left_is_point:
+                kdtree_search_in_range(left_branch, query=query, points=points)
+
+            try:
+                right_branch = node['right']
+                if is_area_inside_query(right_branch['area'], query):
+                    return points.append( report_subtree(right_branch))
+                elif is_area_intersects_query(right_branch['area'], query):
+                    kdtree_search_in_range(right_branch, query=query, points=points)
+            except KeyError as right_is_point:
+                kdtree_search_in_range(right_branch, query=query, points=points)
+
+    return set(points)
 
 # kdtree = build_kdtree(points)
 kdtree = build_kdtree([
@@ -247,6 +267,7 @@ kdtree = build_kdtree([
 ])
 pprint.pprint(kdtree)
 
+print(kdtree_search_in_range(kdtree))
 
 # print(kdtree_search_in_range({}))
 # pprint.pprint(kdtree_search_in_range(kdtree, (0, 0), (130, 130)))
