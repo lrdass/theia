@@ -43,10 +43,7 @@ def circle_to_point(circle):
 def get_group_by_id(tree, group_id):
     return [
         circle
-        for group in tree.iter(SVG_NAMESPACE_GROUP)
-        if "id" in group.attrib
-        if group.attrib["id"] == group_id
-        for circle in get_all_points_from_tree(group)
+        for circle in get_all_points_from_tree(tree)
     ]
 
 
@@ -65,11 +62,6 @@ def get_point_by_id(tree, point_id):
         if "id" in circle.attrib
         if circle.attrib["id"] == point_id
     ]
-
-
-# svg_tree = read_svg_file("./camera_frustum/kdtree/points/points.svg")
-# [pivot] = get_point_by_id(svg_tree, "pivot")
-# points = get_group_by_id(svg_tree, "points")
 
 
 def distance(point1, point2):
@@ -97,7 +89,7 @@ def closest_point(all_points, new_point):
 
 
 k = 2
-def build_kdtree(points, depth=0, area=Interval(), last_split=None):
+def build_kdtree(points, depth=0, area=Interval(), last_split=None, side=''):
     n = len(points)
     if n <= 0:
         return None
@@ -117,15 +109,17 @@ def build_kdtree(points, depth=0, area=Interval(), last_split=None):
         update_area = copy.deepcopy(area) 
 
         if last_split is not None:
-            if split_value < last_split:
-                update_area[axis_name].min = last_split
-            else:
-                update_area[axis_name].max = last_split
+            ## right last_split > eixo.min 
+            if side == 'right':
+                update_area[axis_name].min = last_split if last_split > update_area[axis_name].min else update_area[axis_name].min
+            ## left  last_split < eixo.min
+            if side == 'left':
+                update_area[axis_name].max = last_split if last_split < update_area[axis_name].max else update_area[axis_name].max
 
         no =  {
             "split": split_value,
-            "left": build_kdtree(sorted_points[: mid_point+1], depth + 1, update_area, split_value),
-            "right": build_kdtree(sorted_points[mid_point+1 :], depth + 1, update_area, split_value),
+            "left": build_kdtree(sorted_points[: mid_point+1], depth + 1, update_area, split_value, side='left'),
+            "right": build_kdtree(sorted_points[mid_point+1 :], depth + 1, update_area, split_value, side='right'),
             "area": update_area,
         }
         return no
@@ -225,15 +219,15 @@ def report_subtree(node={}, points=[]):
     return set(points)
 
 
-def kdtree_search_in_range(node, query=Interval((-7,3), (-7, 3)), depth=0, points=[]):
+def kdtree_search_in_range(node, query=Interval, depth=0, points=[]):
     """ quais pontos estao dentro de rect ? """
     try:
         point = node['point']
         if is_point_inside_query(point, query):
             return  points.append(point)
     except KeyError as not_a_point:
-            left_branch = node['left']
             try:
+                left_branch = node['left']
                 if is_area_inside_query(left_branch['area'], query):
                     return points.append(report_subtree(left_branch))
                 elif is_area_intersects_query(left_branch['area'], query):
@@ -253,21 +247,22 @@ def kdtree_search_in_range(node, query=Interval((-7,3), (-7, 3)), depth=0, point
     return set(points)
 
 # kdtree = build_kdtree(points)
-kdtree = build_kdtree([
-(-13,8),
-(-11,-7),
-(-8,-1),
-(-8,6),
-(-5,-5),
-(-2,2),
-(2,7),
-(4,-6),
-(6,5),
-(8,-3),
-])
-pprint.pprint(kdtree)
 
-print(kdtree_search_in_range(kdtree))
+svg_tree = read_svg_file("./kdtree/points/points3.svg")
+points = get_group_by_id(svg_tree, "points")
+rect_query = next(svg_tree.iter(SVG_NAMESPACE_RECT)).attrib
+
+min_x = float(rect_query['x'])
+max_x = float(rect_query['x']) + float(rect_query['width'])
+min_y = float(rect_query['y'])
+max_y = float(rect_query['y']) - float(rect_query['height'])
+
+rect_query = Interval((min_x, max_x), (min_y, max_y))
+print(rect_query)
+
+kdtree = build_kdtree(points)
+
+pprint.pprint(kdtree)
+pprint.pprint(kdtree_search_in_range(kdtree, query=rect_query))
 
 # print(kdtree_search_in_range({}))
-# pprint.pprint(kdtree_search_in_range(kdtree, (0, 0), (130, 130)))

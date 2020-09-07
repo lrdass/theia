@@ -1,0 +1,11 @@
+ <svg width="400" height="400">
+  <rect x="" y="" width="150" height="150"
+  style="fill:none;stroke:red;stroke-width:1;" />
+
+  <circle
+    cx=""
+    cy=""
+    radius=""
+    style=""
+  />
+</svg> 
