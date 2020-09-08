@@ -248,14 +248,14 @@ def kdtree_search_in_range(node, query=Interval, depth=0, points=[]):
 
 # kdtree = build_kdtree(points)
 
-svg_tree = read_svg_file("./kdtree/points/points3.svg")
-points = get_group_by_id(svg_tree, "points")
-rect_query = next(svg_tree.iter(SVG_NAMESPACE_RECT)).attrib
+svg_tree = read_svg_file("./kdtree/points/points4.svg")
+points = [circle_to_point(circle) for circle in svg_tree.iter('circle')] 
+rect_query = svg_tree.find('rect').attrib
 
 min_x = float(rect_query['x'])
 max_x = float(rect_query['x']) + float(rect_query['width'])
 min_y = float(rect_query['y'])
-max_y = float(rect_query['y']) - float(rect_query['height'])
+max_y = float(rect_query['y']) + float(rect_query['height'])
 
 rect_query = Interval((min_x, max_x), (min_y, max_y))
 print(rect_query)
@@ -263,6 +263,17 @@ print(rect_query)
 kdtree = build_kdtree(points)
 
 pprint.pprint(kdtree)
-pprint.pprint(kdtree_search_in_range(kdtree, query=rect_query))
+
+points_inside = kdtree_search_in_range(kdtree, query=rect_query)
+pprint.pprint(points_inside)
+
+def colorize_points_inside(points_inside, svg_tree):
+    for circle in svg_tree.iter('circle'):
+        point_circle = circle_to_point(circle)
+        if point_circle in points_inside:
+            circle.attrib['style'] = 'fill:#00ff00' 
+    svg_tree.write('teste.svg')
+
+colorize_points_inside(points_inside, svg_tree)
 
 # print(kdtree_search_in_range({}))
