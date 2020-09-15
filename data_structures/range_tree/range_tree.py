@@ -1,5 +1,6 @@
 import pprint
 import math
+from copy import copy
 
 class Interval:
     class Range:
@@ -31,6 +32,7 @@ class Node:
     left = None
     right = None
     value = None
+    associated = None
 
     def __init__(self, value=None):
         self.value = value
@@ -53,7 +55,7 @@ class Node:
 
     
  
-def build_binary_tree2(points=[]):
+def build_binary_tree(points=[]):
     points = sorted(points)
     n = len(points)
     
@@ -63,27 +65,27 @@ def build_binary_tree2(points=[]):
         return no
     else:
         no = Node(points[mid_point])
-        no.left = build_binary_tree2(points[:mid_point+1])
-        no.right = build_binary_tree2(points[mid_point+1:])
+        no.left = build_binary_tree(points[:mid_point+1])
+        no.right = build_binary_tree(points[mid_point+1:])
         return no
 
 
-def build_binary_tree(points=[]):
-    points = sorted(points)
-    n = len(points)
+# def build_binary_tree(points=[]):
+#     points = sorted(points)
+#     n = len(points)
 
-    mid_point = int((n-1) / 2)
-    if n == 1:
-        return {
-            "point": points.pop() 
-        }
-    else:
-        no = {
-           "split" : points[mid_point],
-           "left": build_binary_tree(points[:mid_point+1]),
-           "right": build_binary_tree(points[mid_point+1:])
-        }
-        return no
+#     mid_point = int((n-1) / 2)
+#     if n == 1:
+#         return {
+#             "point": points.pop() 
+#         }
+#     else:
+#         no = {
+#            "split" : points[mid_point],
+#            "left": build_binary_tree(points[:mid_point+1]),
+#            "right": build_binary_tree(points[mid_point+1:])
+#         }
+#         return no
 
 def search_in_range_1d(tree, range=Interval):
     split = find_split_node(tree, range) 
@@ -135,7 +137,42 @@ def find_split_node(node=Node, range=Interval):
 
     return no
 
-arvore = build_binary_tree2([-10, -8, -7, -5, -2, 2, 5, 6])
-print(search_in_range_1d(arvore, Interval((-6, 20))))
+def build_associated_tree(points=[], axis=1): 
+    sorted_points = sorted(points, key=lambda point: point[axis])
+    n = len(points)
+    
+    mid_point = int((n-1) / 2)
+    split_value = sorted_points[mid_point][axis]
+    if n == 1:
+        no = Node(points.pop()) 
+        return no
+    else:
+        no = Node(split_value)
+        no.left = build_associated_tree(sorted_points[:mid_point+1])
+        no.right = build_associated_tree(sorted_points[mid_point+1:])
+        return no
+ 
+def build_2d_range_tree(points=[]):
+    y_tree = build_associated_tree(copy(points))
+
+    n = len(points)
+    sorted_points = sorted(points, key=lambda point: point[0])
+    mid_point = int( (n-1)/2 )
+
+    if n == 1:
+        no = Node(points.pop()) 
+        no.associated = y_tree
+        return no
+    else:
+        no = Node(sorted_points[mid_point][0])
+        no.left = build_2d_range_tree(sorted_points[:mid_point+1])
+        no.right = build_2d_range_tree(sorted_points[mid_point+1:])
+        no.associated = y_tree
+        return no
+
+# arvore = build_binary_tree([-10, -8, -7, -5, -2, 2, 5, 6])
+arvore = build_2d_range_tree([(0,1), (3,4), (-4,6), (14,1), (-12,4)])
+print(str(arvore))
+# print(search_in_range_1d(arvore, Interval((-6, 20))))
 
 # print(str(arvore))
