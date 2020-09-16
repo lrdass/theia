@@ -87,32 +87,33 @@ def build_binary_tree(points=[]):
 #         }
 #         return no
 
-def search_in_range_1d(tree, range=Interval):
-    split = find_split_node(tree, range) 
+def search_in_range_1d(tree, range=Interval.Range, axis=1):
+    split = find_split_node(tree, range)
     inside = [] 
 
     if split.is_leaf():
-        if range.x.max <= split.value <= range.x.min:
+        if range.min <= split.value <= range.max:
             inside.append(split.value)
     else:
         no = split.left
         while not no.is_leaf():
-            if range.x.min <= no.value:
+            if range.min <= no.value:
                 inside.extend(report_subtree(node=no.right))
                 no = no.left
             else:
                 no = no.right 
-        if range.x.min < no.value <= range.x.max:
+        # aqui ta chegando uma tupla
+        if range.min < no.value[axis] <= range.max:
             inside.append(no.value)
 
         no = split.right
         while not no.is_leaf():
-            if range.x.max > no.value:
+            if range.max > no.value:
                 inside.extend(report_subtree(node=no.left))
                 no = no.right
             else:
                 no = no.left 
-        if range.x.min < no.value <= range.x.max:
+        if range.min < no.value[axis] <= range.max:
             inside.append(no.value)
         
     return set(inside)
@@ -127,10 +128,11 @@ def report_subtree(node=Node, points=[]):
     
     return set(points)
 
-def find_split_node(node=Node, range=Interval):
+def find_split_node(node=Node, range=Interval.Range):
     no = node
-    while not no.is_leaf and range.x.max<= no.value  or range.x.min > no.value:
-        if range.x.max <= no.value :
+
+    while not no.is_leaf and range.max <= no.value  or range.min > no.value:
+        if range.max <= no.value :
             no = node.left
         else:
             no = node.right
@@ -170,9 +172,44 @@ def build_2d_range_tree(points=[]):
         no.associated = y_tree
         return no
 
+def search_in_range_2d(tree=Node, query=Interval):
+    x_split = find_split_node(tree, query.x)
+    inside = []
+
+    if x_split.is_leaf() and query.x.min <= x_split.value <= query.x.max:
+        inside.append(x_split.value)
+    else:
+        no = x_split.left
+        while not no.is_leaf():
+            if query.x.min <= no.value:
+                points_inside= search_in_range_1d(tree.associated, query.y)
+                inside.extend(points_inside)
+                no = no.left
+            else:
+                no = no.right
+        if query.x.min <= no.value[0] < query.x.max and \
+            query.y.min <= no.value[1] < query.y.max:
+            inside.append(no.value)
+        
+        no = x_split.right
+        while not no.is_leaf():
+            if query.x.min > no.value:
+                points_inside= search_in_range_1d(tree.associated, query.y)
+                inside.extend(points_inside)
+                no = no.right
+            else:
+                no = no.left
+        if query.x.min <= no.value[0] < query.x.max and \
+            query.y.min <= no.value[1] < query.y.max:
+            inside.append(no.value)
+
+    return inside    
+
+
 # arvore = build_binary_tree([-10, -8, -7, -5, -2, 2, 5, 6])
 arvore = build_2d_range_tree([(0,1), (3,4), (-4,6), (14,1), (-12,4)])
 print(str(arvore))
-# print(search_in_range_1d(arvore, Interval((-6, 20))))
+print(search_in_range_2d(arvore, Interval((-4, 3), (2,7))))
+# print(search_in_range_1d(arvore, Interval.Range(3,7)))
 
 # print(str(arvore))
