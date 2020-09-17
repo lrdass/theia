@@ -248,7 +248,7 @@ def kdtree_search_in_range(node, query=Interval, depth=0, points=[]):
 
 # kdtree = build_kdtree(points)
 
-svg_tree = read_svg_file("./data_structures/kdtree/points/points4.svg")
+svg_tree = read_svg_file("./data_structures/utils/points/points4.svg")
 points = [circle_to_point(circle) for circle in svg_tree.iter('circle')] 
 rect_query = svg_tree.find('rect').attrib
 

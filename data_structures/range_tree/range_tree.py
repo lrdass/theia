@@ -2,30 +2,7 @@ import xml.etree.ElementTree as ET
 import pprint
 import math
 from copy import copy
-
-class Interval:
-    class Range:
-        def __init__(self, min_value, max_value):
-            self.min = min_value
-            self.max = max_value     
-    x = None
-    y = None
     
-    def __init__(self, x_range=(-math.inf,math.inf), y_range=(-math.inf,math.inf)):
-        self.x = self.Range(min(x_range), max(x_range))
-        self.y = self.Range(min(y_range), max(y_range))
-    
-    def __repr__(self):
-        return 'x : [{},{}], y :[{}, {}]'.format(self.x.min, self.x.max, self.y.min, self.y.max)
-    
-    def __getitem__(self, name):
-        return getattr(self, name)
-    def __setitem__(self, name, value):
-        return setattr(self, name, value)
-    def __delitem__(self, name):
-        return delattr(self, name)
-    def __contains__(self, name):
-        return hasattr(self, name)
 
 
 
@@ -54,7 +31,49 @@ class Node:
     def __repr__(self):
         return '{}'.format(self.value)
 
+
+
+class Interval:
+    class Range:
+        def __init__(self, min_value, max_value):
+            self.min = min_value
+            self.max = max_value     
+    x = None
+    y = None
     
+    def __init__(self, x_range=(-math.inf,math.inf), y_range=(-math.inf,math.inf)):
+        self.x = self.Range(min(x_range), max(x_range))
+        self.y = self.Range(min(y_range), max(y_range))
+    
+    def __repr__(self):
+        return 'x : [{},{}], y :[{}, {}]'.format(self.x.min, self.x.max, self.y.min, self.y.max)
+    
+    def __getitem__(self, name):
+        return getattr(self, name)
+    def __setitem__(self, name, value):
+        return setattr(self, name, value)
+    def __delitem__(self, name):
+        return delattr(self, name)
+    def __contains__(self, name):
+        return hasattr(self, name)
+
+
+
+def circle_to_point(circle):
+    circle_dict = circle.attrib
+    return (float(circle_dict["cx"]), float(circle_dict["cy"]))
+
+def read_svg_file(svg_file):
+    return ET.parse(svg_file)
+
+def colorize_points_inside(points_inside, svg_tree):
+    for circle in svg_tree.iter('circle'):
+        point_circle = circle_to_point(circle)
+        if point_circle in points_inside:
+            circle.attrib['style'] = 'fill:#00ff00' 
+    svg_tree.write('teste.svg')
+
+
  
 def build_binary_tree(points=[]):
     points = sorted(points)
@@ -192,15 +211,7 @@ def search_in_range_2d(tree=Node, query=Interval):
     return set(inside)    
 
 
-def circle_to_point(circle):
-    circle_dict = circle.attrib
-    return (float(circle_dict["cx"]), float(circle_dict["cy"]))
-
-def read_svg_file(svg_file):
-    return ET.parse(svg_file)
-
-
-svg_tree = read_svg_file("./data_structures/kdtree/points/points4.svg")
+svg_tree =read_svg_file("./data_structures/utils/points/points4.svg")
 points = [circle_to_point(circle) for circle in svg_tree.iter('circle')] 
 rect_query = svg_tree.find('rect').attrib
 
@@ -218,13 +229,6 @@ print(str(range_tree))
 
 points_inside = search_in_range_2d(range_tree, query=rect_query)
 pprint.pprint(points_inside)
-
-def colorize_points_inside(points_inside, svg_tree):
-    for circle in svg_tree.iter('circle'):
-        point_circle = circle_to_point(circle)
-        if point_circle in points_inside:
-            circle.attrib['style'] = 'fill:#00ff00' 
-    svg_tree.write('teste.svg')
 
 colorize_points_inside(points_inside, svg_tree)
 
