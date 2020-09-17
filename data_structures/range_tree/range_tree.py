@@ -1,3 +1,4 @@
+import xml.etree.ElementTree as ET
 import pprint
 import math
 from copy import copy
@@ -113,13 +114,14 @@ def report_subtree(node=Node, points=[]):
 def find_split_node(node=Node, range=Interval.Range):
     no = node
 
-    if no.is_leaf():
-        return no
-    while not no.is_leaf and range.max <= no.value  or range.min > no.value:
-        if range.max <= no.value :
-            no = node.left
+    while not no.is_leaf():
+        if range.max <= no.value  or range.min > no.value:
+            if range.max <= no.value :
+                no = node.left
+            else:
+                no = node.right
         else:
-            no = node.right
+            break
 
     return no
 
@@ -191,9 +193,46 @@ def search_in_range_2d(tree=Node, query=Interval):
 
 
 # arvore = build_binary_tree([-10, -8, -7, -5, -2, 2, 5, 6])
-arvore = build_2d_range_tree([(0,1), (3,4), (-4,6), (14,1), (-12,4)])
-print(str(arvore))
-print(search_in_range_2d(arvore, Interval((-4, 3), (2,7))))
+# arvore = build_2d_range_tree([(0,1), (3,4), (-4,6), (14,1), (-12,4)])
+# print(str(arvore))
+# print(search_in_range_2d(arvore, Interval((-4, 3), (2,7))))
 # print(search_in_range_1d(arvore, Interval.Range(3,7)))
 
 # print(str(arvore))
+
+def circle_to_point(circle):
+    circle_dict = circle.attrib
+    return (float(circle_dict["cx"]), float(circle_dict["cy"]))
+
+def read_svg_file(svg_file):
+    return ET.parse(svg_file)
+
+
+svg_tree = read_svg_file("./data_structures/kdtree/points/points4.svg")
+points = [circle_to_point(circle) for circle in svg_tree.iter('circle')] 
+rect_query = svg_tree.find('rect').attrib
+
+min_x = float(rect_query['x'])
+max_x = float(rect_query['x']) + float(rect_query['width'])
+min_y = float(rect_query['y'])
+max_y = float(rect_query['y']) + float(rect_query['height'])
+
+rect_query = Interval((min_x, max_x), (min_y, max_y))
+print(rect_query)
+
+range_tree = build_2d_range_tree(points)
+
+print(str(range_tree))
+
+points_inside = search_in_range_2d(range_tree, query=rect_query)
+pprint.pprint(points_inside)
+
+def colorize_points_inside(points_inside, svg_tree):
+    for circle in svg_tree.iter('circle'):
+        point_circle = circle_to_point(circle)
+        if point_circle in points_inside:
+            circle.attrib['style'] = 'fill:#00ff00' 
+    svg_tree.write('teste.svg')
+
+colorize_points_inside(points_inside, svg_tree)
+
