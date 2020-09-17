@@ -197,7 +197,7 @@ def is_point_inside_query(point, interval=Interval):
     
 def is_area_inside_query(area=Interval, query=Interval):
     return area.y.min >= query.y.min and area.y.max <= query.y.max  \
-        and area.x.max <= query.x.max and area.x.min >= area.x.min
+        and area.x.min >= query.x.min and area.x.max <= query.x.max
 
 def is_area_intersects_query(area=Interval, query=Interval):
     return area.x.max == math.inf and area.x.min == -math.inf \
@@ -248,10 +248,12 @@ def kdtree_search_in_range(node, query=Interval, depth=0, points=[]):
 
 # kdtree = build_kdtree(points)
 
-svg_tree = read_svg_file("kkkk.svg")
+svg_tree = read_svg_file('kkkk.svg')
 points = [circle_to_point(circle) for circle in svg_tree.iter(SVG_NAMESPACE_CIRCLE)] 
-# rect_query = svg_tree.find('rect').attrib
 rect_query = svg_tree.find(SVG_NAMESPACE_RECT).attrib
+# points = [circle_to_point(circle) for circle in svg_tree.iter('circle')] 
+# rect_query = svg_tree.find('rect').attrib
+# rect_query = svg_tree.find('rect').attrib
 
 min_x = float(rect_query['x'])
 max_x = float(rect_query['x']) + float(rect_query['width'])
@@ -270,6 +272,7 @@ pprint.pprint(points_inside)
 
 def colorize_points_inside(points_inside, svg_tree):
     for circle in svg_tree.iter(SVG_NAMESPACE_CIRCLE):
+    # for circle in svg_tree.iter('circle'):
         point_circle = circle_to_point(circle)
         if point_circle in points_inside:
             circle.attrib['style'] = 'fill:#00ff00' 
