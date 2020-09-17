@@ -192,14 +192,6 @@ def search_in_range_2d(tree=Node, query=Interval):
     return set(inside)    
 
 
-# arvore = build_binary_tree([-10, -8, -7, -5, -2, 2, 5, 6])
-# arvore = build_2d_range_tree([(0,1), (3,4), (-4,6), (14,1), (-12,4)])
-# print(str(arvore))
-# print(search_in_range_2d(arvore, Interval((-4, 3), (2,7))))
-# print(search_in_range_1d(arvore, Interval.Range(3,7)))
-
-# print(str(arvore))
-
 def circle_to_point(circle):
     circle_dict = circle.attrib
     return (float(circle_dict["cx"]), float(circle_dict["cy"]))
