@@ -15,6 +15,7 @@ glfw = "*"
 numpy = "*"
 pillow = "*"
 pyrr = "*"
+svgwrite = "*"
 
 [requires]
 python_version = "3.7"

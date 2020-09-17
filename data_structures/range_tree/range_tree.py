@@ -2,9 +2,8 @@ import xml.etree.ElementTree as ET
 import pprint
 import math
 from copy import copy
-    
-
-
+import svgwrite
+import random
 
 class Node:
     left = None
@@ -57,7 +56,28 @@ class Interval:
     def __contains__(self, name):
         return hasattr(self, name)
 
+def create_svg_points(file_name, number_points, size=(200, 200)):
+    dwg = svgwrite.Drawing(file_name, size=size)
+    dwg.viewbox(-size[0]/2, -size[1]/2, size[0], size[1])
+    for n in range(number_points):
+        x_rnd = random.randint(-size[0]/2, size[0]/2)
+        y_rnd = random.randint(-size[1]/2, size[1]/2)
+        dwg.add(dwg.circle(center=(x_rnd, y_rnd), r=2))
+    
+    x_rnd = random.randint(-size[0]/2, size[0]/2)
+    y_rnd = random.randint(-size[1]/2, size[1]/2)
+    
+    y_size = random.randint(1, (size[1]/2)) 
+    x_size = random.randint(1, (size[0]/2))
 
+    x_size = x_size if x_rnd+x_size<= (size[0] / 2) else size[0]/2
+    y_size = y_size if y_rnd+y_size<= size[1] / 2 else size[1]/2
+
+    dwg.add(dwg.rect(insert=(x_rnd, y_rnd), size=(x_size, y_size), rx=None, ry=None, fill='none', stroke='red'))
+
+    dwg.save()
+
+# create_svg_points('kkkk.svg', 100)
 
 def circle_to_point(circle):
     circle_dict = circle.attrib
@@ -67,7 +87,7 @@ def read_svg_file(svg_file):
     return ET.parse(svg_file)
 
 def colorize_points_inside(points_inside, svg_tree):
-    for circle in svg_tree.iter('circle'):
+    for circle in svg_tree.iter('{http://www.w3.org/2000/svg}circle'):
         point_circle = circle_to_point(circle)
         if point_circle in points_inside:
             circle.attrib['style'] = 'fill:#00ff00' 
@@ -211,9 +231,10 @@ def search_in_range_2d(tree=Node, query=Interval):
     return set(inside)    
 
 
-svg_tree =read_svg_file("./data_structures/utils/points/points4.svg")
-points = [circle_to_point(circle) for circle in svg_tree.iter('circle')] 
-rect_query = svg_tree.find('rect').attrib
+svg_tree =read_svg_file("kkkk.svg")
+points = [circle_to_point(circle) for circle in svg_tree.iter('{http://www.w3.org/2000/svg}circle')] 
+# rect_query = svg_tree.find('rect').attrib
+rect_query = svg_tree.find("{http://www.w3.org/2000/svg}rect").attrib
 
 min_x = float(rect_query['x'])
 max_x = float(rect_query['x']) + float(rect_query['width'])
