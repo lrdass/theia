@@ -69,24 +69,6 @@ def build_binary_tree(points=[]):
         no.right = build_binary_tree(points[mid_point+1:])
         return no
 
-
-# def build_binary_tree(points=[]):
-#     points = sorted(points)
-#     n = len(points)
-
-#     mid_point = int((n-1) / 2)
-#     if n == 1:
-#         return {
-#             "point": points.pop() 
-#         }
-#     else:
-#         no = {
-#            "split" : points[mid_point],
-#            "left": build_binary_tree(points[:mid_point+1]),
-#            "right": build_binary_tree(points[mid_point+1:])
-#         }
-#         return no
-
 def search_in_range_1d(tree, range=Interval.Range, axis=1):
     split = find_split_node(tree, range)
     inside = [] 
