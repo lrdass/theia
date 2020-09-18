@@ -212,8 +212,8 @@ def search_in_range_2d(tree=Node, query=Interval):
                 no = no.left
             else:
                 no = no.right
-        if query.x.min <= no.value[0] < query.x.max and \
-            query.y.min <= no.value[1] < query.y.max:
+        if query.x.min <= no.value[0] < query.x.max  \
+                and query.y.min <= no.value[1] < query.y.max:
             inside.append(no.value)
         
         no = x_split.right
@@ -228,10 +228,10 @@ def search_in_range_2d(tree=Node, query=Interval):
             query.y.min <= no.value[1] <= query.y.max:
             inside.append(no.value)
 
-    return set(inside)    
+    return set(inside)
 
 
-svg_tree =read_svg_file("kkkk.svg")
+svg_tree = read_svg_file("new_points.svg")
 points = [circle_to_point(circle) for circle in svg_tree.iter('{http://www.w3.org/2000/svg}circle')] 
 # rect_query = svg_tree.find('rect').attrib
 rect_query = svg_tree.find("{http://www.w3.org/2000/svg}rect").attrib

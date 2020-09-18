@@ -226,29 +226,29 @@ def kdtree_search_in_range(node, query=Interval, depth=0, points=[]):
         if is_point_inside_query(point, query):
             return  points.append(point)
     except KeyError as not_a_point:
-            try:
-                left_branch = node['left']
-                if is_area_inside_query(left_branch['area'], query):
-                    return points.extend(report_subtree(left_branch))
-                elif is_area_intersects_query(left_branch['area'], query):
-                    kdtree_search_in_range(left_branch, query=query, points=points)
-            except KeyError as left_is_point:
+        try:
+            left_branch = node['left']
+            if is_area_inside_query(left_branch['area'], query):
+                return points.extend(report_subtree(left_branch))
+            elif is_area_intersects_query(left_branch['area'], query):
                 kdtree_search_in_range(left_branch, query=query, points=points)
+        except KeyError as left_is_point:
+            kdtree_search_in_range(left_branch, query=query, points=points)
 
-            try:
-                right_branch = node['right']
-                if is_area_inside_query(right_branch['area'], query):
-                    return points.extend( report_subtree(right_branch))
-                elif is_area_intersects_query(right_branch['area'], query):
-                    kdtree_search_in_range(right_branch, query=query, points=points)
-            except KeyError as right_is_point:
+        try:
+            right_branch = node['right']
+            if is_area_inside_query(right_branch['area'], query):
+                return points.extend( report_subtree(right_branch))
+            elif is_area_intersects_query(right_branch['area'], query):
                 kdtree_search_in_range(right_branch, query=query, points=points)
+        except KeyError as right_is_point:
+            kdtree_search_in_range(right_branch, query=query, points=points)
 
     return set(points)
 
 # kdtree = build_kdtree(points)
 
-svg_tree = read_svg_file('kkkk.svg')
+svg_tree = read_svg_file('new_points.svg')
 points = [circle_to_point(circle) for circle in svg_tree.iter(SVG_NAMESPACE_CIRCLE)] 
 rect_query = svg_tree.find(SVG_NAMESPACE_RECT).attrib
 # points = [circle_to_point(circle) for circle in svg_tree.iter('circle')] 
@@ -272,7 +272,6 @@ pprint.pprint(points_inside)
 
 def colorize_points_inside(points_inside, svg_tree):
     for circle in svg_tree.iter(SVG_NAMESPACE_CIRCLE):
-    # for circle in svg_tree.iter('circle'):
         point_circle = circle_to_point(circle)
         if point_circle in points_inside:
             circle.attrib['style'] = 'fill:#00ff00' 

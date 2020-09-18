@@ -1,3 +1,5 @@
+import svgwrite
+import random
 import xml.etree.ElementTree as ET
 import math
 
@@ -54,6 +56,28 @@ class Interval:
         return hasattr(self, name)
 
 
+def create_svg_points(file_name, number_points, size=(200, 200)):
+    dwg = svgwrite.Drawing(file_name, size=size)
+    dwg.viewbox(-size[0]/2, -size[1]/2, size[0], size[1])
+    for n in range(number_points):
+        x_rnd = random.randint(-size[0]/2, size[0]/2)
+        y_rnd = random.randint(-size[1]/2, size[1]/2)
+        dwg.add(dwg.circle(center=(x_rnd, y_rnd), r=2))
+    
+    x_rnd = random.randint(-size[0]/2, size[0]/2)
+    y_rnd = random.randint(-size[1]/2, size[1]/2)
+    
+    y_size = random.randint(1, (size[1]/2)) 
+    x_size = random.randint(1, (size[0]/2))
+
+    x_size = x_size if x_rnd+x_size<= (size[0] / 2) else size[0]/2
+    y_size = y_size if y_rnd+y_size<= size[1] / 2 else size[1]/2
+
+    dwg.add(dwg.rect(insert=(-50, -60), size=(40, 40), rx=None, ry=None, fill='none', stroke='red'))
+
+    dwg.save()
+
+
 
 def circle_to_point(circle):
     circle_dict = circle.attrib
@@ -69,3 +93,5 @@ def colorize_points_inside(points_inside, svg_tree):
             circle.attrib['style'] = 'fill:#00ff00' 
     svg_tree.write('teste.svg')
 
+
+create_svg_points('new_points.svg', 200)
