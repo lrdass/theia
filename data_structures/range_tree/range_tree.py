@@ -156,9 +156,9 @@ def find_split_node(node=Node, range=Interval.Range):
     while not no.is_leaf():
         if range.max <= no.value  or range.min > no.value:
             if range.max <= no.value :
-                no = node.left
+                no = no.left
             else:
-                no = node.right
+                no = no.right
         else:
             break
 
