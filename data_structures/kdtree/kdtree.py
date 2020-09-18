@@ -199,6 +199,7 @@ def is_area_inside_query(area=Interval, query=Interval):
     return area.y.min >= query.y.min and area.y.max <= query.y.max  \
         and area.x.min >= query.x.min and area.x.max <= query.x.max
 
+# esta parte do algoritmo esta com problema
 def is_area_intersects_query(area=Interval, query=Interval):
     return area.x.max == math.inf and area.x.min == -math.inf \
          and  area.y.max == math.inf and area.y.min == -math.inf \
