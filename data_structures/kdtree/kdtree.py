@@ -14,6 +14,14 @@ class Interval:
         def __init__(self, min_value, max_value):
             self.min = min_value
             self.max = max_value     
+        
+        def intersect(self, range):
+            return self.max >= range.min or range.max < self.min
+        
+        def inside(self, range):
+            return self.max < range.max and self.max >= range.min \
+                and self.min >= range.min and self.min < range.max 
+
     x = None
     y = None
     
@@ -192,21 +200,14 @@ def closer_distante(point, p1, p2):
         return p2
 
 def is_point_inside_query(point, interval=Interval):
-    return point[0] <= interval.x.max and point[0] >= interval.x.min \
-        and point[1] <= interval.y.max and point[1] >= interval.y.min
+    return point[0] <= interval.x.max and point[0] > interval.x.min \
+        and point[1] <= interval.y.max and point[1] > interval.y.min
     
 def is_area_inside_query(area=Interval, query=Interval):
-    return area.y.min >= query.y.min and area.y.max <= query.y.max  \
-        and area.x.min >= query.x.min and area.x.max <= query.x.max
+    return  area.x.inside(query.x) and area.y.inside(query.y)
 
-# esta parte do algoritmo esta com problema
 def is_area_intersects_query(area=Interval, query=Interval):
-    return area.x.max == math.inf and area.x.min == -math.inf \
-         and  area.y.max == math.inf and area.y.min == -math.inf \
-        or query.x.min <= area.x.max <= query.x.max \
-        or query.y.min <= area.y.max <= query.y.max \
-        or query.y.min <= area.y.min <= query.y.max \
-        or query.x.min <= area.x.min <= query.x.max \
+    return area.x.intersect(query.x) or area.y.intersect(query.y)
 
 def report_subtree(node={}, points=[]):
     try:
@@ -279,5 +280,3 @@ def colorize_points_inside(points_inside, svg_tree):
     svg_tree.write('teste.svg')
 
 colorize_points_inside(points_inside, svg_tree)
-
-# print(kdtree_search_in_range({}))

@@ -66,14 +66,9 @@ def create_svg_points(file_name, number_points, size=(200, 200)):
     
     x_rnd = random.randint(-size[0]/2, size[0]/2)
     y_rnd = random.randint(-size[1]/2, size[1]/2)
-    
-    y_size = random.randint(1, (size[1]/2)) 
-    x_size = random.randint(1, (size[0]/2))
 
-    x_size = x_size if x_rnd+x_size<= (size[0] / 2) else size[0]/2
-    y_size = y_size if y_rnd+y_size<= size[1] / 2 else size[1]/2
 
-    dwg.add(dwg.rect(insert=(-50, -60), size=(40, 40), rx=None, ry=None, fill='none', stroke='red'))
+    dwg.add(dwg.rect(insert=(x_rnd, y_rnd), size=(40, 40), rx=None, ry=None, fill='none', stroke='red'))
 
     dwg.save()
 
