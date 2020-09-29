@@ -16,11 +16,11 @@ class Interval:
             self.max = max_value     
         
         def intersect(self, range):
-            return self.max >= range.min or range.max < self.min
+            return self.max >= range.min or range.max <= self.min
         
         def inside(self, range):
-            return self.max < range.max and self.max >= range.min \
-                and self.min >= range.min and self.min < range.max 
+            return self.max <= range.max and self.max >= range.min \
+                and self.min >= range.min and self.min <= range.max 
 
     x = None
     y = None
@@ -103,36 +103,40 @@ def build_kdtree(points, depth=0, area=Interval(), last_split=None, side=''):
         return None
 
     axis = depth % k
-    axis_name = 'x' if axis == 1 else 'y' 
+    # axis_name = 'x' if axis == 1 else 'y' 
 
-    sorted_points = sorted(points, key=lambda point: point[axis])
+    sorted_points_x = sorted(points, key=lambda point: point[0])
+    sorted_points_y = sorted(points, key=lambda point: point[1])
+
+    axis_sorted_points = sorted(points, key=lambda point: point[axis])
+
     if n == 1:
         return {
-            'point': sorted_points.pop()
+            'point': axis_sorted_points.pop()
         }
     else:
         mid_point = int((n - 1) / 2)
-        split_value = sorted_points[mid_point][axis]
+        split_value = axis_sorted_points[mid_point][axis]
         
-        update_area = copy.deepcopy(area) 
+        # update_area = copy.deepcopy(area) 
 
-        if last_split is not None:
-            ## right last_split > eixo.min 
-            if side == 'right':
-                update_area[axis_name].min = last_split if last_split > update_area[axis_name].min else update_area[axis_name].min
-            ## left  last_split < eixo.min
-            if side == 'left':
-                update_area[axis_name].max = last_split if last_split < update_area[axis_name].max else update_area[axis_name].max
+        # if last_split is not None:
+        #     ## right last_split > eixo.min 
+        #     if side == 'right':
+        #         update_area[axis_name].min = last_split if last_split > update_area[axis_name].min else update_area[axis_name].min
+        #     ## left  last_split < eixo.min
+        #     if side == 'left':
+        #         update_area[axis_name].max = last_split if last_split < update_area[axis_name].max else update_area[axis_name].max
+
+        update_area = Interval((sorted_points_x[0][0], sorted_points_x[-1][0]), (sorted_points_y[0][1], sorted_points_y[-1][1]))
 
         no =  {
             "split": split_value,
-            "left": build_kdtree(sorted_points[: mid_point+1], depth + 1, update_area, split_value, side='left'),
-            "right": build_kdtree(sorted_points[mid_point+1 :], depth + 1, update_area, split_value, side='right'),
+            "left": build_kdtree(axis_sorted_points[: mid_point+1], depth + 1),
+            "right": build_kdtree(axis_sorted_points[mid_point+1 :], depth + 1),
             "area": update_area,
         }
         return no
-
-
 
 def kdtree_naive_closest_point(root, point, depth=0, best=None):
     if root is None:
@@ -154,7 +158,6 @@ def kdtree_naive_closest_point(root, point, depth=0, best=None):
         next_branch = root["right"]
 
     return kdtree_naive_closest_point(next_branch, point, depth + 1, next_best)
-
 
 def kdtree_closest_point(root, point, depth=0):
     if root is None:
@@ -182,7 +185,6 @@ def kdtree_closest_point(root, point, depth=0):
         )
 
     return best
-
 
 def closer_distante(point, p1, p2):
     if p1 is None:
@@ -227,23 +229,23 @@ def kdtree_search_in_range(node, query=Interval, depth=0, points=[]):
         point = node['point']
         if is_point_inside_query(point, query):
             return  points.append(point)
-    except KeyError as not_a_point:
+    except KeyError:
         try:
             left_branch = node['left']
             if is_area_inside_query(left_branch['area'], query):
                 return points.extend(report_subtree(left_branch))
             elif is_area_intersects_query(left_branch['area'], query):
                 kdtree_search_in_range(left_branch, query=query, points=points)
-        except KeyError as left_is_point:
+        except KeyError:
             kdtree_search_in_range(left_branch, query=query, points=points)
 
         try:
             right_branch = node['right']
             if is_area_inside_query(right_branch['area'], query):
-                return points.extend( report_subtree(right_branch))
+                return points.extend(report_subtree(right_branch))
             elif is_area_intersects_query(right_branch['area'], query):
                 kdtree_search_in_range(right_branch, query=query, points=points)
-        except KeyError as right_is_point:
+        except KeyError:
             kdtree_search_in_range(right_branch, query=query, points=points)
 
     return set(points)
