@@ -1,3 +1,4 @@
+from functools import reduce
 import xml.etree.ElementTree as ET
 import pprint
 import math
@@ -10,6 +11,10 @@ class Node:
     right = None
     value = None
     associated = None
+
+    ## specific for interval tree
+    l_associated = None
+    r_associated = None
 
     def __init__(self, value=None):
         self.value = value
@@ -29,7 +34,6 @@ class Node:
     
     def __repr__(self):
         return '{}'.format(self.value)
-
 
 
 class Interval:
@@ -55,6 +59,12 @@ class Interval:
         return delattr(self, name)
     def __contains__(self, name):
         return hasattr(self, name)
+
+class Segment(Interval):
+    def __init__(self, p1=(0,0), p2=(0,0)):
+        super().__init__((p1[0],p2[0]), (p1[1], p2[1]))
+        self.p1 = p1
+        self.p2 = p2
 
 def create_svg_points(file_name, number_points, size=(200, 200)):
     dwg = svgwrite.Drawing(file_name, size=size)
@@ -231,27 +241,85 @@ def search_in_range_2d(tree=Node, query=Interval):
     return set(inside)
 
 
-svg_tree = read_svg_file("new_points.svg")
-points = [circle_to_point(circle) for circle in svg_tree.iter('{http://www.w3.org/2000/svg}circle')] 
+def segments_median(segments=[], axis=0):
+    all_points = list(map(lambda segment: [segment.p1, segment.p2], segments))
+    all_points_flatten = reduce(lambda acc, curr: acc + curr, all_points)
+
+    all_points_sorted = sorted(all_points_flatten, key=lambda point: point[0]) 
+
+    n = len(all_points_sorted)
+    mid = int((n-1)/2)
+    return all_points_sorted[mid][0] 
+
+def segments_intersect(segments=[Interval], query=0):
+    # segments should be intervals
+    i_mid = i_left = i_right = set()
+    for segment in segments:
+        if segment.x.min <= query <= segment.x.max:
+            i_mid.update(segment)
+        elif segment.x.max < query:
+            i_left.update(segment)
+        else:
+            i_right.update(segment)
+    
+    return (i_left, i_mid, i_right)
+
+# horizontal_lines
+def build_interval_tree(segments=[]):
+    if not len(segments):
+        return Node()
+    else:
+        x_mid = segments_median(segments)
+        node = Node(x_mid)
+        i_left, i_mid, i_right = segments_intersect(segments, x_mid)
+        
+        node.l_associated = build_2d_range_tree(list(
+            map(lambda segment: segment.p1, i_mid) # get all leftmost points of i_mid
+        ))
+        node.r_associated = build_2d_range_tree(list(
+            map(lambda segment: segment.p2, i_mid) # get all rightmost points of i_mid
+        ))
+
+        node.left=build_interval_tree(i_left)
+        node.right=build_interval_tree(i_right)
+
+        return node
+        
+
+# svg_tree = read_svg_file("new_points.svg")
+# points = [circle_to_point(circle) for circle in svg_tree.iter('{http://www.w3.org/2000/svg}circle')] 
 # rect_query = svg_tree.find('rect').attrib
-rect_query = svg_tree.find("{http://www.w3.org/2000/svg}rect").attrib
+# rect_query = svg_tree.find("{http://www.w3.org/2000/svg}rect").attrib
 
-min_x = float(rect_query['x'])
-max_x = float(rect_query['x']) + float(rect_query['width'])
-min_y = float(rect_query['y'])
-max_y = float(rect_query['y']) + float(rect_query['height'])
+# min_x = float(rect_query['x'])
+# max_x = float(rect_query['x']) + float(rect_query['width'])
+# min_y = float(rect_query['y'])
+# max_y = float(rect_query['y']) + float(rect_query['height'])
 
-# points = [(-8,8), (-7, -3), (-6, 2), (-4,5), (-2,-7),(0,10), (3,-9), (4,2), (7,-11), (15,3)]
-rect_query = Interval((min_x, max_x), (min_y, max_y))
-print(rect_query)
+# points = [ (-4, 5),(-2,-2),(0,0),(1,1),(1,2),(2,2), (3,1),(3,3),(4,-2),(15,3) ]
+# rect_query = Interval((min_x, max_x), (min_y, max_y))
+# print(rect_query)
 
-range_tree = build_2d_range_tree(points)
-print(range_tree)
+# range_tree = build_2d_range_tree(points)
+# print(range_tree)
+
+segments= [
+    Segment((0,4), (4,4)),
+    Segment((-2, -5), (3, -5)),
+    Segment((6, 9), (12, 9)),
+    Segment((-8, -5), (-3, -5)),
+    Segment((1,1), (3,1)),
+]
+
+window = Interval((-1, 3),(4, -4))
+
+
+print(build_interval_tree(segments))
 
 # print(str(range_tree))
 
-points_inside = search_in_range_2d(range_tree, query=rect_query)
-pprint.pprint(points_inside)
+# points_inside = search_in_range_2d(range_tree, query=rect_query)
+# pprint.pprint(points_inside)
 
-colorize_points_inside(points_inside, svg_tree)
+# colorize_points_inside(points_inside, svg_tree)
 
