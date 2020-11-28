@@ -211,8 +211,9 @@ def search_in_range_2d(tree=Node, query=Interval):
     x_split = find_split_node(tree, query.x)
     inside = []
 
-    if x_split.is_leaf() and query.x.min <= x_split.value <= query.x.max:
-        inside.append(x_split.value)
+    if x_split.is_leaf():
+        if query.x.min <= x_split.value[0] <= query.x.max:
+            inside.append(x_split.value)
     else:
         no = x_split.left
         while not no.is_leaf():
@@ -286,6 +287,17 @@ def build_interval_tree(segments=[]):
         node.right=build_interval_tree(i_right)
 
         return node
+
+def query_interval_tree(node=Node(), window=Interval(), inside_segments=[]):
+    if not node.is_leaf():
+        if window.x.min < node.value:
+            inside_segments.extend(search_in_range_2d(node.l_associated, window))
+            query_interval_tree(node.left, window, inside_segments)
+        else:
+            inside_segments.extend(search_in_range_2d(node.r_associated, window))
+            query_interval_tree(node.right, window, inside_segments)
+    return inside_segments
+
         
 
 # svg_tree = read_svg_file("new_points.svg")
@@ -315,9 +327,10 @@ segments= [
 
 window = Interval((-1, 3),(4, -4))
 
-
-print(build_interval_tree(segments))
-
+interval_tree = build_interval_tree(segments)
+print(interval_tree)
+points_inside = query_interval_tree(interval_tree, window)
+print(points_inside)
 # print(str(range_tree))
 
 # points_inside = search_in_range_2d(range_tree, query=rect_query)
