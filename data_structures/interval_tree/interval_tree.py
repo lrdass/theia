@@ -51,8 +51,8 @@ class Interval:
     def __repr__(self):
         return 'x : [{},{}], y :[{}, {}]'.format(self.x.min, self.x.max, self.y.min, self.y.max)
     
-    def __getitem__(self, name):
-        return getattr(self, name)
+    # def __getitem__(self, name):
+        # return getattr(self, name)
     def __setitem__(self, name, value):
         return setattr(self, name, value)
     def __delitem__(self, name):
@@ -253,14 +253,16 @@ def segments_median(segments=[], axis=0):
 
 def segments_intersect(segments=[Interval], query=0):
     # segments should be intervals
-    i_mid = i_left = i_right = set()
+    i_mid = []
+    i_left = []
+    i_right = []
     for segment in segments:
         if segment.x.min <= query <= segment.x.max:
-            i_mid.update(segment)
+            i_mid.extend([segment])
         elif segment.x.max < query:
-            i_left.update(segment)
+            i_left.extend([segment])
         else:
-            i_right.update(segment)
+            i_right.extend([segment])
     
     return (i_left, i_mid, i_right)
 
