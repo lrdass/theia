@@ -260,7 +260,7 @@ def segments_intersect(segments=[Interval], query=0):
     for segment in segments:
         if segment.x.min <= query <= segment.x.max:
             i_mid.extend([segment])
-        elif segment.x.max < query:
+        elif segment.x.max <= query:
             i_left.extend([segment])
         else:
             i_right.extend([segment])
@@ -290,11 +290,13 @@ def build_interval_tree(segments=[]):
 
 def query_interval_tree(node=Node(), window=Interval(), inside_segments=[]):
     if not node.is_leaf():
-        if window.x.min < node.value:
-            inside_segments.extend(search_in_range_2d(node.l_associated, window))
+        if window.x.min <= node.value:
+            inside_segments.extend(search_in_range_2d(node.l_associated, window)) # search points inside
+            inside_segments.extend(search_in_range_2d(node.l_associated, Interval((-math.inf, window.x.min), (window.y.min, window.y.max)))) # points that cross
             query_interval_tree(node.left, window, inside_segments)
         else:
             inside_segments.extend(search_in_range_2d(node.r_associated, window))
+            inside_segments.extend(search_in_range_2d(node.r_associated, Interval((window.x.max, math.inf), (window.y.min, window.y.max))))
             query_interval_tree(node.right, window, inside_segments)
     return inside_segments
 
@@ -319,7 +321,7 @@ def query_interval_tree(node=Node(), window=Interval(), inside_segments=[]):
 
 segments= [
     Segment((0,4), (4,4)),
-    Segment((-2, -5), (3, -5)),
+    Segment((-3,-1), (6, -1)),
     Segment((6, 9), (12, 9)),
     Segment((-8, -5), (-3, -5)),
     Segment((1,1), (3,1)),
