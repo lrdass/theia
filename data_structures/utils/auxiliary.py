@@ -72,6 +72,15 @@ def create_svg_points(file_name, number_points, size=(200, 200)):
 
     dwg.save()
 
+def create_svg_segments(file_name, size=(200,200), segments=[], window=Interval):
+    dwg = svgwrite.Drawing(file_name, size=size)
+    dwg.viewbox(-size[0]/2, -size[1]/2, size[0], size[1])
+    for segment in segments:
+        dwg.add(
+            dwg.line(start=segment.p1, end=segment.p2)
+        )
+    dwg.add(dwg.rect(insert=(window.x.min, window.y.max), size=(40, 40), rx=None, ry=None, fill='none', stroke='red'))
+    dwg.save()
 
 
 def circle_to_point(circle):
@@ -89,4 +98,5 @@ def colorize_points_inside(points_inside, svg_tree):
     svg_tree.write('teste.svg')
 
 
-create_svg_points('new_points.svg', 200)
+# create_svg_points('new_points.svg', 200)
+# create_svg_segments()
