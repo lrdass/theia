@@ -64,47 +64,84 @@ class Interval:
 
 class Segment(Interval):
     def __init__(self, p1=(0,0), p2=(0,0)):
+        if(p1[0] > p2[0]):
+            self.p1 = p2
+            self.p2 = p1
         super().__init__((p1[0],p2[0]), (p1[1], p2[1]))
         self.p1 = p1
         self.p2 = p2
+    
+    def __eq__(self, other):
+        return  self.p1[0] == other.p1[0] and  \
+                self.p1[1] == other.p1[1] and \
+                self.p2[0] == other.p1[0] and \
+                self.p2[1] == other.p2[1]
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __repr__(self):
+        return f"({self.p1}, {self.p2})"
 
 # create_svg_points('kkkk.svg', 100)
 
-def circle_to_point(circle):
-    circle_dict = circle.attrib
-    return (float(circle_dict["cx"]), float(circle_dict["cy"]))
+def line_to_segment(line):
+    line_dict = line.attrib
+    p1 = (int(line_dict['x1']), int(line_dict['y1']))
+    p2 = (int(line_dict['x2']), int(line_dict['y2']))
+    return Segment(p1, p2)
 
 def read_svg_file(svg_file):
     return ET.parse(svg_file)
 
-def create_svg_segments(file_name, size=(200,200), segments=[], window=Interval):
+
+def colorize_segments_inside(segments_inside, svg_tree):
+    for line in svg_tree.iter('{http://www.w3.org/2000/svg}line'):
+        line_segment = line_to_segment(line)
+        if line_segment in segments_inside:
+            line.attrib['stroke'] = 'green'
+    svg_tree.write('inside_segments.svg')
+
+
+def create_svg_segments(file_name, size=(200,200), segments=[], number_segments=100, window=Interval, inside_segments=[]):
     dwg = svgwrite.Drawing(file_name, size=size)
     
     dwg.viewbox(-size[0]/2, -size[1]/2, size[0], size[1])
-    dwg.add(dwg.rect(insert=(window.x.min, window.y.max),
+    g = svgwrite.container.Group()
+    g.scale(1,-1)
+    
+    # window min-x, min-y 
+    # x_rand = random.randint(-size[0]/2, size[0]/2)
+    # y_rand = random.randint(-size[0]/2, size[0]/2)
+    # g.add(dwg.rect(
+    #                 insert=(x_rand, y_rand),
+    #                 size=(40,40),
+    #                 rx=None, ry=None, fill='none', stroke='red')
+    # )
+    g.add(dwg.rect(
+                    insert=(window.x.min, window.y.min),
                     size=(abs(window.x.min-window.x.max), abs(window.y.min-window.y.max)),
-                    rx=None, ry=None, fill='none', stroke='red')
+                    rx=None, ry=None, fill='none', stroke='red', stroke_width=0.5)
     )
-    
     for segment in segments:
-        dwg.add(
-            dwg.line(start=segment.p1, end=segment.p2, stroke='black')
-        )
-    
+        if segment in inside_segments:
+            g.add(
+                dwg.line(start=segment.p1, end=segment.p2, stroke='green',  stroke_width=0.5)
+            )
+        else:
+            g.add(
+                dwg.line(start=segment.p1, end=segment.p2, stroke='black',  stroke_width=0.5)
+            )
+    # for i in range(number_segments):
+    #     x_rand1 = random.randint(-size[0]/2, size[0]/2)
+    #     x_rand2 = random.randint(-size[0]/2, size[0]/2)
+    #     y_rand = random.randint(-size[0]/2, size[0]/2)
+    #     g.add(
+    #         dwg.line(start=(x_rand1, y_rand), end=(x_rand2, y_rand), stroke='black')
+    #     )
+
+    dwg.add(g)
     dwg.save()
-
-
-
-# def colorize_points_inside(points_inside, svg_tree):
-#     for circle in svg_tree.iter('{http://www.w3.org/2000/svg}circle'):
-#         point_circle = circle_to_point(circle)
-#         if point_circle in points_inside:
-#             circle.attrib['style'] = 'fill:#00ff00' 
-#     svg_tree.write('teste.svg')
-
-
-
-
  
 def build_binary_tree(points=[]):
     points = sorted(points)
@@ -138,14 +175,8 @@ def search_in_range_1d(tree, range=Interval.Range, axis=1):
                 no = no.right 
 
         # aqui ta chegando uma tupla
-        if no.value.__class__.__name__ is not 'Segment':
-            #segment
-            # 
-            if range.min < no.value.p1[axis] <= range.max:
-                inside.append(no.value)
-        else:
-            if range.min < no.value[axis] <= range.max:
-                inside.append(no.value)
+        if range.min < no.value.p1[axis] <= range.max:
+            inside.append(no.value)
 
         no = split.right
         while not no.is_leaf():
@@ -155,14 +186,8 @@ def search_in_range_1d(tree, range=Interval.Range, axis=1):
             else:
                 no = no.left 
 
-        if no.value.__class__.__name__ is not 'Segment':
-            # segment
-            # is segment inside the query?
-            if range.min < no.value.p1[axis] <= range.max:
-                inside.append(no.value)
-        else:
-            if range.min < no.value[axis] <= range.max:
-                inside.append(no.value)
+        if range.min < no.value.p1[axis] <= range.max:
+            inside.append(no.value)
         
     return set(inside)
         
@@ -222,7 +247,7 @@ def build_2d_range_tree_adapted(segments=[Segment], leftmost=False, rightmost=Fa
             map(lambda segment: segment.p1, sorted_segments) # get all rightmost points of i_mid
         ) 
     else:
-        sorted_segments= sorted(segments, key=lambda segment: segment.p2[0], reverse=True) 
+        sorted_segments= sorted(segments, key=lambda segment: segment.p2[0]) 
         points = list(
             map(lambda segment: segment.p2, sorted_segments) # get all rightmost points of i_mid
         )
@@ -250,7 +275,8 @@ def search_in_range_2d(tree=Node, query=Interval):
 
     if x_split.is_leaf():
         #segment
-        if query.x.min <= x_split.value.p1[0] <= query.x.max:
+        if query.x.min <= x_split.value.p1[0] <= query.x.max and \
+            query.y.min <= x_split.value.p1[1] <= query.y.max:
             inside.append(x_split.value)
     else:
         no = x_split.left
@@ -263,8 +289,8 @@ def search_in_range_2d(tree=Node, query=Interval):
                 no = no.right
         # here is leaf and is an segment
         # is the leftmost point inside the query?
-        if query.x.min <= no.value.p1[0] < query.x.max  \
-                and query.y.min <= no.value.p1[1] < query.y.max:
+        if query.x.min <= no.value.p1[0] <= query.x.max  \
+                and query.y.min <= no.value.p1[1] <= query.y.max:
             inside.append(no.value)
         
         no = x_split.right
@@ -328,22 +354,27 @@ def build_interval_tree(segments=[]):
 
 def query_interval_tree(node=Node(), window=Interval(), inside_segments=[]):
     if not node.is_leaf():
-        if window.x.min <= node.value:
+        if window.x.min < node.value:
             inside_segments.extend(search_in_range_2d(node.l_associated, window)) # search points inside
             inside_segments.extend(search_in_range_2d(node.l_associated, Interval((-math.inf, window.x.min), (window.y.min, window.y.max)))) # points that cross
             query_interval_tree(node.left, window, inside_segments)
+            query_interval_tree(node.right, window, inside_segments)
         else:
             inside_segments.extend(search_in_range_2d(node.r_associated, window))
             inside_segments.extend(search_in_range_2d(node.r_associated, Interval((window.x.max, math.inf), (window.y.min, window.y.max))))
             query_interval_tree(node.right, window, inside_segments)
+            query_interval_tree(node.left, window, inside_segments)
+        
     return inside_segments
 
         
 
-# svg_tree = read_svg_file("new_points.svg")
-# points = [circle_to_point(circle) for circle in svg_tree.iter('{http://www.w3.org/2000/svg}circle')] 
-# rect_query = svg_tree.find('rect').attrib
-# rect_query = svg_tree.find("{http://www.w3.org/2000/svg}rect").attrib
+
+# create_svg_segments('segments.svg', number_segments=30)
+
+# svg_tree = read_svg_file("segments.svg")
+# segments = [line_to_segment(line) for line in svg_tree.iter('{http://www.w3.org/2000/svg}line')] 
+# rect_query = [rect for rect in svg_tree.iter("{http://www.w3.org/2000/svg}rect")][0].attrib
 
 # min_x = float(rect_query['x'])
 # max_x = float(rect_query['x']) + float(rect_query['width'])
@@ -359,22 +390,32 @@ def query_interval_tree(node=Node(), window=Interval(), inside_segments=[]):
 
 segments= [
     Segment((0,4), (4,4)),
+    Segment((-3,3), (2,3)),
     Segment((-3,-1), (6, -1)),
+    Segment((-4, 10), (-1, 10)),
     Segment((6, 9), (12, 9)),
     Segment((-8, -5), (-3, -5)),
+    Segment((0, -5), (5, -5)),
     Segment((1,1), (3,1)),
+    Segment((8 ,1), (12,1)),
+    Segment((-12, -3), (10, -3)),
+    Segment((-12, -10), (-1, -10)),
 ]
 
 window = Interval((-1, 3),(4, -4))
+# window=Interval((int(rect_query['x']), int(rect_query['x'])+int(rect_query['width'])), 
+#                 (int(rect_query['y'])+int(rect_query['height'])),int(rect_query['y']) )
+print(window)
 
 interval_tree = build_interval_tree(segments)
 print(interval_tree)
-points_inside = query_interval_tree(interval_tree, window)
-print(points_inside)
+segments_inside = query_interval_tree(interval_tree, window)
+print(list(map(lambda segment: {segment.p1, segment.p2},segments_inside)))
 # print(str(range_tree))
 
 # points_inside = search_in_range_2d(range_tree, query=rect_query)
 # pprint.pprint(points_inside)
 
 # colorize_points_inside(points_inside, svg_tree)
-create_svg_segments('segments.svg', segments=segments, window=window)
+create_svg_segments('segments.svg', segments=segments, inside_segments=segments_inside, window=window, size=(30,30))
+# colorize_segments_inside(segments_inside, svg_tree)
