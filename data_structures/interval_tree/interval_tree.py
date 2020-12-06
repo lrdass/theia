@@ -205,7 +205,7 @@ def find_split_node(node=Node, range=Interval.Range):
     no = node
 
     while not no.is_leaf():
-        if range.max <= no.value  or range.min > no.value:
+        if range.max <= no.value  or range.min >= no.value:
             if range.max <= no.value :
                 no = no.left
             else:
@@ -259,25 +259,30 @@ def build_2d_range_tree_adapted(segments=[Segment], leftmost=False, rightmost=Fa
     mid_point = int( (n-1)/2 )
 
     if n == 1:
-        no = Node(segments.pop()) 
+        no = Node(sorted_segments.pop()) 
         no.associated = y_tree
         return no
     else:
         no = Node(points[mid_point][0])
-        no.left = build_2d_range_tree_adapted(sorted_segments[:mid_point+1])
-        no.right = build_2d_range_tree_adapted(sorted_segments[mid_point+1:])
+        no.left = build_2d_range_tree_adapted(sorted_segments[:mid_point+1], leftmost=leftmost, rightmost=rightmost)
+        no.right = build_2d_range_tree_adapted(sorted_segments[mid_point+1:], leftmost=leftmost, rightmost=rightmost)
         no.associated = y_tree
         return no
 
-def search_in_range_2d(tree=Node, query=Interval):
+def search_in_range_2d(tree=Node, query=Interval, leftmost=False, rightmost=True):
     x_split = find_split_node(tree, query.x)
     inside = []
 
     if x_split.is_leaf():
         #segment
-        if query.x.min <= x_split.value.p1[0] <= query.x.max and \
-            query.y.min <= x_split.value.p1[1] <= query.y.max:
-            inside.append(x_split.value)
+        if leftmost:
+            if query.x.min <= x_split.value.p1[0] <= query.x.max and \
+                query.y.min <= x_split.value.p1[1] <= query.y.max:
+                inside.append(x_split.value)
+        else:
+            if query.x.min <= x_split.value.p2[0] <= query.x.max and \
+                query.y.min <= x_split.value.p2[1] <= query.y.max:
+                inside.append(x_split.value)
     else:
         no = x_split.left
         while not no.is_leaf():
@@ -289,13 +294,18 @@ def search_in_range_2d(tree=Node, query=Interval):
                 no = no.right
         # here is leaf and is an segment
         # is the leftmost point inside the query?
-        if query.x.min <= no.value.p1[0] <= query.x.max  \
-                and query.y.min <= no.value.p1[1] <= query.y.max:
-            inside.append(no.value)
+        if leftmost:
+            if query.x.min <= no.value.p1[0] <= query.x.max  \
+                    and query.y.min <= no.value.p1[1] <= query.y.max:
+                inside.append(no.value)
+        else:
+            if query.x.min <= no.value.p2[0] <= query.x.max  \
+                    and query.y.min <= no.value.p2[1] <= query.y.max:
+                inside.append(no.value)
         
         no = x_split.right
         while not no.is_leaf():
-            if query.x.max > no.value:
+            if query.x.max >= no.value:
                 points_inside = search_in_range_1d(no.left.associated, query.y)
                 inside.extend(points_inside)
                 no = no.right
@@ -303,9 +313,14 @@ def search_in_range_2d(tree=Node, query=Interval):
                 no = no.left
         # here is a leaf, and a segment
         # is the leftmost point inside the query
-        if query.x.min <= no.value.p1[0] <= query.x.max and \
-            query.y.min <= no.value.p1[1] <= query.y.max:
-            inside.append(no.value)
+        if leftmost:
+            if query.x.min <= no.value.p1[0] <= query.x.max and \
+                query.y.min <= no.value.p1[1] <= query.y.max:
+                inside.append(no.value)
+        else:
+            if query.x.min <= no.value.p2[0] <= query.x.max and \
+                query.y.min <= no.value.p2[1] <= query.y.max:
+                inside.append(no.value)
 
     return set(inside)
 
@@ -355,15 +370,15 @@ def build_interval_tree(segments=[]):
 def query_interval_tree(node=Node(), window=Interval(), inside_segments=[]):
     if not node.is_leaf():
         if window.x.min < node.value:
-            inside_segments.extend(search_in_range_2d(node.l_associated, window)) # search points inside
-            inside_segments.extend(search_in_range_2d(node.l_associated, Interval((-math.inf, window.x.min), (window.y.min, window.y.max)))) # points that cross
+            inside_segments.extend(search_in_range_2d(node.l_associated, window, leftmost=True)) # search points inside
+            inside_segments.extend(search_in_range_2d(node.l_associated, Interval((-math.inf, window.x.min), (window.y.min, window.y.max)), leftmost=True)) # points that cross
             query_interval_tree(node.left, window, inside_segments)
-            query_interval_tree(node.right, window, inside_segments)
+            # query_interval_tree(node.right, window, inside_segments)
         else:
-            inside_segments.extend(search_in_range_2d(node.r_associated, window))
-            inside_segments.extend(search_in_range_2d(node.r_associated, Interval((window.x.max, math.inf), (window.y.min, window.y.max))))
+            inside_segments.extend(search_in_range_2d(node.r_associated, window, rightmost=True))
+            inside_segments.extend(search_in_range_2d(node.r_associated, Interval((window.x.max, math.inf), (window.y.min, window.y.max)), rightmost=True))
             query_interval_tree(node.right, window, inside_segments)
-            query_interval_tree(node.left, window, inside_segments)
+            # query_interval_tree(node.left, window, inside_segments)
         
     return inside_segments
 
@@ -390,16 +405,19 @@ def query_interval_tree(node=Node(), window=Interval(), inside_segments=[]):
 
 segments= [
     Segment((0,4), (4,4)),
-    Segment((-3,3), (2,3)),
-    Segment((-3,-1), (6, -1)),
-    Segment((-4, 10), (-1, 10)),
-    Segment((6, 9), (12, 9)),
     Segment((-8, -5), (-3, -5)),
-    Segment((0, -5), (5, -5)),
+    Segment((6, 9), (12, 9)),
+    Segment((-3,-1), (6, -1)),
     Segment((1,1), (3,1)),
-    Segment((8 ,1), (12,1)),
-    Segment((-12, -3), (10, -3)),
-    Segment((-12, -10), (-1, -10)),
+    
+    Segment((2,-3), (5,-3)),
+    Segment((-10,7), (5,7)),
+    Segment((4,-9), (7,-9)),
+    Segment((-2,8), (7,8)),
+    Segment((-12,-2), (12,-2)),
+
+    Segment((-5,-3), (0,-3)),
+
 ]
 
 window = Interval((-1, 3),(4, -4))
