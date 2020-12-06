@@ -5,23 +5,23 @@ import math
 from copy import copy
 import svgwrite
 import random
+# from range_tree import build_2d_range_tree, search_in_range_2d
 
 class Node:
     left = None
     right = None
     value = None
     associated = None
-    segment = None
 
     ## specific for interval tree
+    segment_map = None
     l_associated = None
     r_associated = None
 
-    def __init__(self, value=None, segment=None):
+    def __init__(self, value=None):
         self.value = value
         self.left = None
         self.right = None
-        self.segment = segment
     
     def is_leaf(self):
         return self.left is None and self.right is None
@@ -64,12 +64,14 @@ class Interval:
 
 class Segment(Interval):
     def __init__(self, p1=(0,0), p2=(0,0)):
-        if(p1[0] > p2[0]):
+        if(p1[0] > p2[0] or p2[0] < p1[0]):
             self.p1 = p2
             self.p2 = p1
-        super().__init__((p1[0],p2[0]), (p1[1], p2[1]))
-        self.p1 = p1
-        self.p2 = p2
+            super().__init__((p1[0],p2[0]), (p1[1], p2[1]))
+        else:
+            super().__init__((p1[0],p2[0]), (p1[1], p2[1]))
+            self.p1 = p1
+            self.p2 = p2
     
     def __eq__(self, other):
         return  self.p1[0] == other.p1[0] and  \
@@ -157,7 +159,7 @@ def build_binary_tree(points=[]):
         no.right = build_binary_tree(points[mid_point+1:])
         return no
 
-def search_in_range_1d(tree, range=Interval.Range, axis=1):
+def search_in_range_1d_segment(tree, range=Interval.Range, axis=1):
     split = find_split_node(tree, range)
     inside = [] 
 
@@ -175,7 +177,7 @@ def search_in_range_1d(tree, range=Interval.Range, axis=1):
                 no = no.right 
 
         # aqui ta chegando uma tupla
-        if range.min < no.value.p1[axis] <= range.max:
+        if range.min <= no.value.p1[axis] <= range.max:
             inside.append(no.value)
 
         no = split.right
@@ -186,7 +188,7 @@ def search_in_range_1d(tree, range=Interval.Range, axis=1):
             else:
                 no = no.left 
 
-        if range.min < no.value.p1[axis] <= range.max:
+        if range.min <= no.value.p1[axis] <= range.max:
             inside.append(no.value)
         
     return set(inside)
@@ -215,79 +217,108 @@ def find_split_node(node=Node, range=Interval.Range):
 
     return no
 
-def build_associated_tree_adapted(segments=[Segment], axis=1): 
-    sorted_segments= sorted(segments, key=lambda segment: segment.p1[0]) 
-    sorted_points = list(
-        map(lambda segment: segment.p1, sorted_segments) # get all rightmost points of i_mid
-    )  
+def build_associated_tree_adapted(segments=[Segment], axis=1, all_points=False): 
+    sorted_points=[]
+
+    n_segments = len(segments)
+    segments_mid = int( (n_segments-1)/2 )
+
+    if all_points:
+        sorted_segments= sorted(segments, key=lambda segment: segment.p1[0]) 
+        #all_points  
+        points_list = list(map(lambda segment: [segment.p1, segment.p2], sorted_segments))
+        flatten_points = reduce(lambda acc, curr: acc + curr, points_list)
+        sorted_points = sorted(flatten_points, key=lambda point: point[0])
+    else:
+        sorted_segments= sorted(segments, key=lambda segment: segment.p1[0])
+        flatten_points = list(
+            map(lambda segment: segment.p1, sorted_segments) # get all rightmost points of i_mid
+        )
+        sorted_points = sorted(flatten_points, key=lambda point: point[0])
     n = len(sorted_points)
     mid_point = int((n-1) / 2)
     
     split_value = sorted_points[mid_point][axis]
     
-    if n == 1:
-        no = Node(segments.pop()) 
+    if n_segments == 1:
+        no = Node(segments.pop())
         return no
     else:
         no = Node(split_value)
-        no.left = build_associated_tree_adapted(sorted_segments[:mid_point+1])
-        no.right = build_associated_tree_adapted(sorted_segments[mid_point+1:])
+        no.left = build_associated_tree_adapted(sorted_segments[:segments_mid+1], all_points=all_points)
+        no.right = build_associated_tree_adapted(sorted_segments[segments_mid+1:], all_points=all_points)
         return no
 '''
     This method builds the 2d range tree based on the segments in relation to the extreme points
     of the segement. The leafs are the segments itself, so, some changes were required.
 '''
-def build_2d_range_tree_adapted(segments=[Segment], leftmost=False, rightmost=False):
+def build_2d_range_tree_adapted(segments=[Segment], leftmost=False, rightmost=False, all_points=False):
 
     points =[]
     sorted_segments=[]
+    
+    n_segments = len(segments)
+    segments_mid = int( (n_segments-1)/2 )
+
     if leftmost:
         sorted_segments= sorted(segments, key=lambda segment: segment.p1[0]) 
         points = list(
             map(lambda segment: segment.p1, sorted_segments) # get all rightmost points of i_mid
         ) 
-    else:
+    elif rightmost:
         sorted_segments= sorted(segments, key=lambda segment: segment.p2[0]) 
         points = list(
             map(lambda segment: segment.p2, sorted_segments) # get all rightmost points of i_mid
         )
+    elif all_points:
+        sorted_segments = sorted(segments, key=lambda segment: segment.p1[0]) 
+        #all_points  
+        points = list(map(lambda segment: [segment.p1, segment.p2], sorted_segments))
+        points = reduce(lambda acc, curr: acc + curr, points)
+        points = sorted(points, key=lambda point: point[0])
 
-    y_tree = build_associated_tree_adapted(copy(segments))
+    y_tree = build_associated_tree_adapted(copy(sorted_segments), all_points=all_points)
     
     n = len(points)
     # sorted_points = sorted(points, key=lambda point: point[0])
     mid_point = int( (n-1)/2 )
 
-    if n == 1:
+    if n_segments == 1:
         no = Node(sorted_segments.pop()) 
         no.associated = y_tree
         return no
     else:
         no = Node(points[mid_point][0])
-        no.left = build_2d_range_tree_adapted(sorted_segments[:mid_point+1], leftmost=leftmost, rightmost=rightmost)
-        no.right = build_2d_range_tree_adapted(sorted_segments[mid_point+1:], leftmost=leftmost, rightmost=rightmost)
+        no.left = build_2d_range_tree_adapted(sorted_segments[:segments_mid+1], leftmost=leftmost, rightmost=rightmost, all_points=all_points)
+        no.right = build_2d_range_tree_adapted(sorted_segments[segments_mid+1:], leftmost=leftmost, rightmost=rightmost, all_points=all_points)
         no.associated = y_tree
         return no
 
-def search_in_range_2d(tree=Node, query=Interval, leftmost=False, rightmost=True):
+def search_in_range_2d_segments(tree=Node, query=Interval, leftmost=False, rightmost=False, all_points=False):
     x_split = find_split_node(tree, query.x)
     inside = []
 
     if x_split.is_leaf():
         #segment
         if leftmost:
-            if query.x.min <= x_split.value.p1[0] <= query.x.max and \
-                query.y.min <= x_split.value.p1[1] <= query.y.max:
+            if query.x.min < x_split.value.p1[0] <= query.x.max and \
+                query.y.min < x_split.value.p1[1] <= query.y.max:
                 inside.append(x_split.value)
-        else:
-            if query.x.min <= x_split.value.p2[0] <= query.x.max and \
-                query.y.min <= x_split.value.p2[1] <= query.y.max:
+        elif rightmost:
+            if query.x.min < x_split.value.p2[0] <= query.x.max and \
+                query.y.min < x_split.value.p2[1] <= query.y.max:
+                inside.append(x_split.value)
+        elif all_points:
+            if (query.x.min < x_split.value.p1[0] <= query.x.max and \
+                query.y.min < x_split.value.p1[1] <= query.y.max) or \
+                (query.x.min < x_split.value.p2[0] <= query.x.max and \
+                query.y.min < x_split.value.p2[1] <= query.y.max):
                 inside.append(x_split.value)
     else:
         no = x_split.left
         while not no.is_leaf():
             if query.x.min <= no.value:
-                points_inside = search_in_range_1d(no.right.associated, query.y)
+                points_inside = search_in_range_1d_segment(no.right.associated, query.y)
                 inside.extend(points_inside)
                 no = no.left
             else:
@@ -298,15 +329,21 @@ def search_in_range_2d(tree=Node, query=Interval, leftmost=False, rightmost=True
             if query.x.min <= no.value.p1[0] <= query.x.max  \
                     and query.y.min <= no.value.p1[1] <= query.y.max:
                 inside.append(no.value)
-        else:
+        elif rightmost:
             if query.x.min <= no.value.p2[0] <= query.x.max  \
                     and query.y.min <= no.value.p2[1] <= query.y.max:
+                inside.append(no.value)
+        elif all_points:
+            if (query.x.min <= no.value.p1[0] <= query.x.max and \
+                query.y.min <= no.value.p1[1] <= query.y.max) or \
+                (query.x.min <= no.value.p2[0] <= query.x.max and \
+                query.y.min <= no.value.p2[1] <= query.y.max):
                 inside.append(no.value)
         
         no = x_split.right
         while not no.is_leaf():
-            if query.x.max >= no.value:
-                points_inside = search_in_range_1d(no.left.associated, query.y)
+            if query.x.max > no.value:
+                points_inside = search_in_range_1d_segment(no.left.associated, query.y)
                 inside.extend(points_inside)
                 no = no.right
             else:
@@ -317,9 +354,15 @@ def search_in_range_2d(tree=Node, query=Interval, leftmost=False, rightmost=True
             if query.x.min <= no.value.p1[0] <= query.x.max and \
                 query.y.min <= no.value.p1[1] <= query.y.max:
                 inside.append(no.value)
-        else:
+        elif rightmost:
             if query.x.min <= no.value.p2[0] <= query.x.max and \
                 query.y.min <= no.value.p2[1] <= query.y.max:
+                inside.append(no.value)
+        elif all_points:
+            if (query.x.min <= no.value.p1[0] <= query.x.max and \
+                query.y.min <= no.value.p1[1] <= query.y.max) or \
+                (query.x.min <= no.value.p2[0] <= query.x.max and \
+                query.y.min <= no.value.p2[1] <= query.y.max):
                 inside.append(no.value)
 
     return set(inside)
@@ -368,20 +411,139 @@ def build_interval_tree(segments=[]):
 
         return node
 
+# return crossing window segments
 def query_interval_tree(node=Node(), window=Interval(), inside_segments=[]):
     if not node.is_leaf():
         if window.x.min < node.value:
-            inside_segments.extend(search_in_range_2d(node.l_associated, window, leftmost=True)) # search points inside
-            inside_segments.extend(search_in_range_2d(node.l_associated, Interval((-math.inf, window.x.max), (window.y.min, window.y.max)), leftmost=True)) # points that cross
+            inside_segments.extend(search_in_range_2d_segments(node.l_associated, Interval((-math.inf, window.x.min), (window.y.min, window.y.max)), leftmost=True)) # points that cross
+            query_interval_tree(node.left, window, inside_segments)
         else:
-            inside_segments.extend(search_in_range_2d(node.r_associated, window, rightmost=True))
-            inside_segments.extend(search_in_range_2d(node.r_associated, Interval((window.x.min, math.inf), (window.y.min, window.y.max)), rightmost=True))
+            inside_segments.extend(search_in_range_2d_segments(node.r_associated, Interval((window.x.max, math.inf), (window.y.min, window.y.max)), rightmost=True))
+            query_interval_tree(node.right, window, inside_segments)
         
-        query_interval_tree(node.left, window, inside_segments)
-        query_interval_tree(node.right, window, inside_segments)
-    return inside_segments
+    return set(inside_segments)
 
+
+
+'''
+trying again, now, with better insight
+'''
+
+def build_associated_tree(points=[], axis=1): 
+    sorted_points = sorted(points, key=lambda point: point[axis])
+    n = len(points)
+    
+    mid_point = int((n-1) / 2)
+    split_value = sorted_points[mid_point][axis]
+    if n == 1:
+        no = Node(points.pop()) 
+        return no
+    else:
+        no = Node(split_value)
+        no.left = build_associated_tree(sorted_points[:mid_point+1])
+        no.right = build_associated_tree(sorted_points[mid_point+1:])
+        return no
+ 
+def build_2d_segment_range_tree(segments=[]):
+    all_points = list(map(lambda segment: [segment.p1, segment.p2], segments))
+    all_points_flatten = reduce(lambda acc, curr: acc + curr, all_points)
+
+    all_points_sorted = sorted(all_points_flatten, key=lambda point: point[0])
+
+    # this is bad design
+    point_segment_map = dict([(segment.p1, segment) for segment in segments])
+    point_segment_map.update(dict([(segment.p2, segment) for segment in segments]))
+
+    def build_range_tree(points, point_segment_map={}):
+        y_tree = build_associated_tree(copy(points))
+
+        n = len(points)
+        sorted_points = sorted(points, key=lambda point: point[0])
+        mid_point = int( (n-1)/2 )
+
+        if n == 1:
+            no = Node(points.pop()) 
+            no.associated = y_tree
+            return no
+        else:
+            no = Node(sorted_points[mid_point][0])
+            no.left = build_range_tree(sorted_points[:mid_point+1])
+            no.right = build_range_tree(sorted_points[mid_point+1:])
+            no.associated = y_tree
+            return no
+
+    tree = build_range_tree(all_points_sorted, point_segment_map)
+    tree.segment_map = point_segment_map
+    return tree
+
+def search_in_range_2d_with_segment_map(tree=Node, query=Interval):
+    x_split = find_split_node(tree, query.x)
+    inside = []
+
+    if x_split.is_leaf() and query.x.min <= x_split.value <= query.x.max:
+        inside.append(x_split.value)
+    else:
+        no = x_split.left
+        while not no.is_leaf():
+            if query.x.min <= no.value:
+                points_inside = search_in_range_1d(no.right.associated, query.y)
+                inside.extend(points_inside)
+                no = no.left
+            else:
+                no = no.right
+        if query.x.min <= no.value[0] < query.x.max  \
+                and query.y.min <= no.value[1] < query.y.max:
+            inside.append(no.value)
         
+        no = x_split.right
+        while not no.is_leaf():
+            if query.x.max > no.value:
+                points_inside = search_in_range_1d(no.left.associated, query.y)
+                inside.extend(points_inside)
+                no = no.right
+            else:
+                no = no.left
+        if query.x.min <= no.value[0] <= query.x.max and \
+            query.y.min <= no.value[1] <= query.y.max:
+            inside.append(no.value)
+    
+    segments_inside = [tree.segment_map[point] for point in inside]
+
+    return set(segments_inside)
+
+
+def search_in_range_1d(tree, range=Interval.Range, axis=1):
+    split = find_split_node(tree, range)
+    inside = [] 
+
+    if split.is_leaf():
+        if range.min <= split.value[axis] <= range.max:
+            inside.append(split.value)
+    else:
+        no = split.left
+        while not no.is_leaf():
+            if range.min <= no.value:
+                inside.extend(report_subtree(node=no.right))
+                no = no.left
+            else:
+                no = no.right 
+        # aqui ta chegando uma tupla
+        if range.min < no.value[axis] <= range.max:
+            inside.append(no.value)
+
+        no = split.right
+        while not no.is_leaf():
+            if range.max > no.value:
+                inside.extend(report_subtree(node=no.left))
+                no = no.right
+            else:
+                no = no.left 
+        if range.min < no.value[axis] <= range.max:
+            inside.append(no.value)
+        
+    return set(inside)
+
+
 
 
 # create_svg_segments('segments.svg', number_segments=30)
@@ -425,20 +587,36 @@ segments= [
     Segment((0,7), (1,7)),
 ]
 
+
 window = Interval((-1, 3),(4, -4))
 # window=Interval((int(rect_query['x']), int(rect_query['x'])+int(rect_query['width'])), 
 #                 (int(rect_query['y'])+int(rect_query['height'])),int(rect_query['y']) )
 print(window)
+# this range tree has to be special: consult on the 2n points, and if a point land inside
+# the window, it must check if the other is as well.
+# alternativily can check if one point land, and if it does take the segment out
+segments_inside_window = build_2d_segment_range_tree(segments)
 
-interval_tree = build_interval_tree(segments)
-print(interval_tree)
-segments_inside = query_interval_tree(interval_tree, window)
-print(list(map(lambda segment: {segment.p1, segment.p2},segments_inside)))
+
+# interval_tree = build_interval_tree(segments)
+# print(interval_tree)
+# points_list = list(map(lambda segment: [segment.p1, segment.p2], segments))
+# flatten_points = reduce(lambda acc, curr: acc + curr, points_list)
+segments_inside = search_in_range_2d_with_segment_map(segments_inside_window, window)
+# segments_inside_window = build_2d_range_tree(flatten_points)
+print(segments_inside)
+
+# print(list(map(lambda segment: {segment.p1, segment.p2},query_interval_tree(interval_tree, window))))
+# print(list(map(lambda segment: {segment.p1, segment.p2},segments_inside)))
 # print(str(range_tree))
 
 # points_inside = search_in_range_2d(range_tree, query=rect_query)
 # pprint.pprint(points_inside)
 
 # colorize_points_inside(points_inside, svg_tree)
-create_svg_segments('segments.svg', segments=segments, inside_segments=segments_inside, window=window, size=(30,30))
+# create_svg_segments('segments.svg', segments=segments, inside_segments=segments_inside.union(query_interval_tree(interval_tree, window)) , window=window, size=(30,30))
 # colorize_segments_inside(segments_inside, svg_tree)
+
+
+# print(query_interval_tree(interval_tree, window))
+# print()
