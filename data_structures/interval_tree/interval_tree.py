@@ -415,10 +415,10 @@ def build_interval_tree(segments=[]):
 def query_interval_tree(node=Node(), window=Interval(), inside_segments=[]):
     if not node.is_leaf():
         if window.x.min < node.value:
-            inside_segments.extend(search_in_range_2d_segments(node.l_associated, Interval((-math.inf, window.x.min), (window.y.min, window.y.max)), leftmost=True)) # points that cross
+            inside_segments.extend(search_in_range_2d_segments(node.l_associated, Interval((-math.inf, window.x.max), (window.y.min, window.y.max)), leftmost=True)) # points that cross
             query_interval_tree(node.left, window, inside_segments)
         else:
-            inside_segments.extend(search_in_range_2d_segments(node.r_associated, Interval((window.x.max, math.inf), (window.y.min, window.y.max)), rightmost=True))
+            inside_segments.extend(search_in_range_2d_segments(node.r_associated, Interval((window.x.min, math.inf), (window.y.min, window.y.max)), rightmost=True))
             query_interval_tree(node.right, window, inside_segments)
         
     return set(inside_segments)
@@ -598,15 +598,16 @@ print(window)
 segments_inside_window = build_2d_segment_range_tree(segments)
 
 
-# interval_tree = build_interval_tree(segments)
+interval_tree = build_interval_tree(segments)
 # print(interval_tree)
 # points_list = list(map(lambda segment: [segment.p1, segment.p2], segments))
 # flatten_points = reduce(lambda acc, curr: acc + curr, points_list)
 segments_inside = search_in_range_2d_with_segment_map(segments_inside_window, window)
 # segments_inside_window = build_2d_range_tree(flatten_points)
-print(segments_inside)
+# print(segments_inside)
 
-# print(list(map(lambda segment: {segment.p1, segment.p2},query_interval_tree(interval_tree, window))))
+segments_inside = segments_inside.union(query_interval_tree(interval_tree, window))
+print(segments_inside)
 # print(list(map(lambda segment: {segment.p1, segment.p2},segments_inside)))
 # print(str(range_tree))
 
@@ -614,7 +615,7 @@ print(segments_inside)
 # pprint.pprint(points_inside)
 
 # colorize_points_inside(points_inside, svg_tree)
-# create_svg_segments('segments.svg', segments=segments, inside_segments=segments_inside.union(query_interval_tree(interval_tree, window)) , window=window, size=(30,30))
+create_svg_segments('segments.svg', segments=segments, inside_segments=segments_inside, window=window, size=(30,30))
 # colorize_segments_inside(segments_inside, svg_tree)
 
 
