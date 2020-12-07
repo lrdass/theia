@@ -76,7 +76,7 @@ class Segment(Interval):
     def __eq__(self, other):
         return  self.p1[0] == other.p1[0] and  \
                 self.p1[1] == other.p1[1] and \
-                self.p2[0] == other.p1[0] and \
+                self.p2[0] == other.p2[0] and \
                 self.p2[1] == other.p2[1]
 
     def __hash__(self):
@@ -105,7 +105,7 @@ def colorize_segments_inside(segments_inside, svg_tree):
     svg_tree.write('inside_segments.svg')
 
 
-def create_svg_segments(file_name, size=(200,200), segments=[], number_segments=100, window=Interval, inside_segments=[]):
+def create_svg_segments(file_name, size=(200,200), segments=[], number_segments=30, window=Interval, inside_segments=[]):
     dwg = svgwrite.Drawing(file_name, size=size)
     
     dwg.viewbox(-size[0]/2, -size[1]/2, size[0], size[1])
@@ -113,34 +113,34 @@ def create_svg_segments(file_name, size=(200,200), segments=[], number_segments=
     g.scale(1,-1)
     
     # window min-x, min-y 
-    # x_rand = random.randint(-size[0]/2, size[0]/2)
-    # y_rand = random.randint(-size[0]/2, size[0]/2)
-    # g.add(dwg.rect(
-    #                 insert=(x_rand, y_rand),
-    #                 size=(40,40),
-    #                 rx=None, ry=None, fill='none', stroke='red')
-    # )
+    x_rand = random.randint(-size[0]/2, size[0]/2)
+    y_rand = random.randint(-size[0]/2, size[0]/2)
     g.add(dwg.rect(
-                    insert=(window.x.min, window.y.min),
-                    size=(abs(window.x.min-window.x.max), abs(window.y.min-window.y.max)),
-                    rx=None, ry=None, fill='none', stroke='red', stroke_width=0.5)
+                    insert=(x_rand, y_rand),
+                    size=(40,40),
+                    rx=None, ry=None, fill='none', stroke='red')
     )
-    for segment in segments:
-        if segment in inside_segments:
-            g.add(
-                dwg.line(start=segment.p1, end=segment.p2, stroke='green',  stroke_width=0.5)
-            )
-        else:
-            g.add(
-                dwg.line(start=segment.p1, end=segment.p2, stroke='black',  stroke_width=0.5)
-            )
-    # for i in range(number_segments):
-    #     x_rand1 = random.randint(-size[0]/2, size[0]/2)
-    #     x_rand2 = random.randint(-size[0]/2, size[0]/2)
-    #     y_rand = random.randint(-size[0]/2, size[0]/2)
-    #     g.add(
-    #         dwg.line(start=(x_rand1, y_rand), end=(x_rand2, y_rand), stroke='black')
-    #     )
+    # g.add(dwg.rect(
+    #                 insert=(window.x.min, window.y.min),
+    #                 size=(abs(window.x.min-window.x.max), abs(window.y.min-window.y.max)),
+    #                 rx=None, ry=None, fill='none', stroke='red', stroke_width=0.5)
+    # )
+    # # for segment in segments:
+    #     if segment in inside_segments:
+    #         g.add(
+    #             dwg.line(start=segment.p1, end=segment.p2, stroke='green',  stroke_width=0.5)
+    #         )
+    #     else:
+    #         g.add(
+    #             dwg.line(start=segment.p1, end=segment.p2, stroke='black',  stroke_width=0.5)
+    #         )
+    for i in range(number_segments):
+        x_rand1 = random.randint(-size[0]/2, size[0]/2)
+        x_rand2 = random.randint(-size[0]/2, size[0]/2)
+        y_rand = random.randint(-size[0]/2, size[0]/2)
+        g.add(
+            dwg.line(start=(x_rand1, y_rand), end=(x_rand2, y_rand), stroke='black')
+        )
 
     dwg.add(g)
     dwg.save()
@@ -506,7 +506,6 @@ def search_in_range_2d_with_segment_map(tree=Node, query=Interval):
         if query.x.min <= no.value[0] <= query.x.max and \
             query.y.min <= no.value[1] <= query.y.max:
             inside.append(no.value)
-    
     segments_inside = [tree.segment_map[point] for point in inside]
 
     return set(segments_inside)
@@ -546,16 +545,17 @@ def search_in_range_1d(tree, range=Interval.Range, axis=1):
 
 
 
+create_svg_segments('segments.svg')
 # create_svg_segments('segments.svg', number_segments=30)
 
-# svg_tree = read_svg_file("segments.svg")
-# segments = [line_to_segment(line) for line in svg_tree.iter('{http://www.w3.org/2000/svg}line')] 
-# rect_query = [rect for rect in svg_tree.iter("{http://www.w3.org/2000/svg}rect")][0].attrib
+svg_tree = read_svg_file("segments.svg")
+segments = [line_to_segment(line) for line in svg_tree.iter('{http://www.w3.org/2000/svg}line')] 
+rect_query = [rect for rect in svg_tree.iter("{http://www.w3.org/2000/svg}rect")][0].attrib
 
-# min_x = float(rect_query['x'])
-# max_x = float(rect_query['x']) + float(rect_query['width'])
-# min_y = float(rect_query['y'])
-# max_y = float(rect_query['y']) + float(rect_query['height'])
+min_x = float(rect_query['x'])
+max_x = float(rect_query['x']) + float(rect_query['width'])
+min_y = float(rect_query['y']) 
+max_y = float(rect_query['y'])+ float(rect_query['height'])
 
 # points = [ (-4, 5),(-2,-2),(0,0),(1,1),(1,2),(2,2), (3,1),(3,3),(4,-2),(15,3) ]
 # rect_query = Interval((min_x, max_x), (min_y, max_y))
@@ -564,39 +564,38 @@ def search_in_range_1d(tree, range=Interval.Range, axis=1):
 # range_tree = build_2d_range_tree(points)
 # print(range_tree)
 
-segments= [
-    Segment((0,4), (4,4)),
-    Segment((-8, -5), (-3, -5)),
-    Segment((6, 9), (12, 9)),
-    Segment((-3,-1), (6, -1)),
-    Segment((1,1), (3,1)),
+# segments= [
+#     Segment((0,4), (4,4)),
+#     Segment((-8, -5), (-3, -5)),
+#     Segment((6, 9), (12, 9)),
+#     Segment((-3,-1), (6, -1)),
+#     Segment((1,1), (3,1)),
     
-    Segment((2,-3), (5,-3)),
+#     Segment((2,-3), (5,-3)),
 
-    Segment((-10,7), (5,7)),
-    Segment((4,-9), (7,-9)),
-    Segment((-2,8), (7,8)),
-    Segment((-12,-2), (12,-2)),
+#     Segment((-10,7), (5,7)),
+#     Segment((4,-9), (7,-9)),
+#     Segment((-2,8), (7,8)),
+#     Segment((-12,-2), (12,-2)),
 
-    Segment((-5,-3), (0,-3)),
-
-
-    Segment((-15,-10), (3,-10)),
-    Segment((-5,-11), (0,-11)),
-    Segment((-5,10), (0,10)),
-    Segment((0,7), (1,7)),
-]
+#     Segment((-5,-3), (0,-3)),
 
 
-window = Interval((-1, 3),(4, -4))
-# window=Interval((int(rect_query['x']), int(rect_query['x'])+int(rect_query['width'])), 
-#                 (int(rect_query['y'])+int(rect_query['height'])),int(rect_query['y']) )
+#     Segment((-15,-10), (3,-10)),
+#     Segment((-5,-11), (0,-11)),
+#     Segment((-5,10), (0,10)),
+#     Segment((0,7), (1,7)),
+# ]
+
+
+# window = Interval((-1, 3),(4, -4))
+window=Interval((min_x, max_x),(min_y, max_y))
 print(window)
 # this range tree has to be special: consult on the 2n points, and if a point land inside
 # the window, it must check if the other is as well.
 # alternativily can check if one point land, and if it does take the segment out
 segments_inside_window = build_2d_segment_range_tree(segments)
-
+# print(segments_inside_window)
 
 interval_tree = build_interval_tree(segments)
 # print(interval_tree)
@@ -615,8 +614,7 @@ print(segments_inside)
 # pprint.pprint(points_inside)
 
 # colorize_points_inside(points_inside, svg_tree)
-create_svg_segments('segments.svg', segments=segments, inside_segments=segments_inside, window=window, size=(30,30))
-# colorize_segments_inside(segments_inside, svg_tree)
+colorize_segments_inside(segments_inside, svg_tree)
 
 
 # print(query_interval_tree(interval_tree, window))
