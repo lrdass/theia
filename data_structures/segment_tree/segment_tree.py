@@ -1,3 +1,4 @@
+from numbers import Number
 import math
 from random import randint
 import pprint
@@ -51,6 +52,17 @@ class Interval:
         if self.closed == 'right':
             return F"]{interval}]" 
         return interval 
+    
+    def __contains__(self, value=0):
+        if not isinstance(value, Interval) and not isinstance(value, Number):
+            raise ValueError('comparing between two distinct types')
+        if isinstance(value, Interval):
+            return True 
+
+        return self.closed == 'both' and self.left <= value <= self.right or \
+                self.closed == 'neither' and self.left < value < self.right or \
+                self.closed == 'left' and self.left <= value < self.right or \
+                self.closed == 'right' and self.left < value <= self.right
 
     def intersect(self, range):
         return False
