@@ -5,12 +5,10 @@ verify_ssl = true
 
 [dev-packages]
 flake8 = "*"
-black = "*"
 pylint = "*"
+autopep8 = "*"
 
 [packages]
-pyopengl = "*"
-pprint = "*"
 glfw = "*"
 numpy = "*"
 pillow = "*"
