@@ -47,8 +47,10 @@ class Interval:
         if closed not in _closed_types:
             raise ValueError('invalid type')
 
-        if left > right:
-            left = right
+        if left > right or right < left:
+            swp = left
+            left = right 
+            right = swp
 
         self.left = left
         self.right = right
@@ -123,27 +125,32 @@ class Interval:
 def build_elementary_segments(segments=[Interval]):
     ## there is a bug here : generating segment ]1,0[ 
     ordered_segments = sorted(segments, key=lambda seg: seg.left)
-    elementary_segments = set()
+    elementary_segments = Queue()
+    
     for index, segment in enumerate(ordered_segments):
         if index == 0:
-            elementary_segments.add(
-                Interval(-math.inf, segment.left, 'neither'))
-        elif index == len(ordered_segments) - 1:
-            previous_segment = ordered_segments[index-1]
-            elementary_segments.add(
-                Interval(previous_segment.right, segment.left,  'neither'))
-            elementary_segments.add(
-                Interval(segment.right, math.inf, 'neither'))
+            elementary_segments.put(Interval(-math.inf, segment.left, 'neither'))
+            elementary_segments.put(Interval(segment.left, segment.left, 'both'))
+            elementary_segments.put(Interval(segment.left, segment.right, 'neither'))
+            elementary_segments.put(Interval(segment.right, segment.right, 'both'))
+        elif index == len(ordered_segments) -1:
+            previous_segment=ordered_segments[index-1] 
+            elementary_segments.put(Interval(previous_segment.right, segment.left, 'neither'))
+            elementary_segments.put(Interval(segment.left, segment.left, 'both'))
+            elementary_segments.put(Interval(segment.left, segment.right, 'neither'))
+            elementary_segments.put(Interval(segment.right, segment.right, 'both'))
+            elementary_segments.put(Interval(segment.right, math.inf, 'neither'))
+            break
         else:
             previous_segment = ordered_segments[index-1]
-            elementary_segments.add(
-                Interval(previous_segment.right, segment.left,  'neither'))
+            elementary_segments.put(Interval(previous_segment.right, segment.left, 'neither'))
+            elementary_segments.put(Interval(segment.left, segment.left, 'both'))
+            elementary_segments.put(Interval(segment.left, segment.right, 'neither'))
+            elementary_segments.put(Interval(segment.right, segment.right, 'both'))
 
-        elementary_segments.add(Interval(segment.left, segment.left, 'both'))
-        elementary_segments.add(
-            Interval(segment.left, segment.right, 'neither'))
-        elementary_segments.add(Interval(segment.right, segment.right, 'both'))
     return elementary_segments
+        
+        
 
 def build_segments_queue(elementary_segments):
     sorted_ele_segments = sorted(elementary_segments, key=lambda seg: seg.left)
