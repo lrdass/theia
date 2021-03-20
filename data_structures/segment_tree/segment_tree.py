@@ -82,6 +82,7 @@ class Interval:
 
     def union(self, target):
         ## fix union, left bounded values are wrong!
+        ## fix union !! is too damn wrong!!! 
         self.merged = True
         left, right, = None, None
         closed_info = {'left': None, 'right': None}
@@ -152,48 +153,46 @@ def build_elementary_segments(segments=[Interval]):
         
         
 
-def build_segments_queue(elementary_segments):
-    sorted_ele_segments = sorted(elementary_segments, key=lambda seg: seg.left)
-    queue_elements = Queue()
-    for element in sorted_ele_segments:
-        queue_elements.put(Node(element))
-    return queue_elements
+def build_segments_queue_nodes(elementary_segments_queue=()):
+    queue = Queue()
+    while not elementary_segments.empty():
+        seg = elementary_segments.get()
+        node = Node(seg)
+        queue.put(node)
+    return queue
 
-
-def build_1d_segment_tree(segments=[]):
      
     # build a fifo with all the segments
     # unite elementary intervals until len(fifo) is 2**k
     # until fifo is empty
-    min_fifo_len = floor(log2(len(segments))) 
-    queue_elements= build_segments_queue(segments)
  
-    def build_structure(segments_queue):
-        # is it safe to assume that this will only happen before going through all the leafs?
-        while not len(segments_queue.queue) == 2 ** min_fifo_len:
-            current_index = 0
-            current = segments_queue.get()
-            if not current.merged:
-                next_element = segments_queue.get()
-                union_node = Node(current.value.union(next_element.value))
-                segments_queue.queue.insert(current_index, union_node)
-                current_index += 1
-                
-        
-        element =  None
-        while not segments_queue.empty():
-            element = segments_queue.get()
-            next_element = queue_elements.get()
-            if not next_element:
-                break
-            else:
-                next_node = Node(element.value.union(next_element.value))
-                next_node.left = element
-                next_node.right = next_node
-                queue_elements.put(next_node)
-        return element
+def build_1d_segment_tree(segments_queue=Queue()):
+    segments_queue = build_segments_queue_nodes(segments_queue)
+    min_fifo_len = floor(log2(len(segments_queue.queue))) 
+    # is it safe to assume that this will only happen before going through all the leafs?
+    while not len(segments_queue.queue) == 2 ** min_fifo_len:
+        current_index = 0
+        current = segments_queue.get()
+        if not current.merged:
+            next_element = segments_queue.get()
+            union_node = Node(current.value.union(next_element.value))
+            segments_queue.queue.insert(current_index, union_node)
+            current_index += 1
+            
+    
+    element =  None
+    while not segments_queue.empty():
+        element = segments_queue.get()
+        next_element = segments_queue.get()
+        if not next_element:
+            break
+        else:
+            next_node = Node(element.value.union(next_element.value))
+            next_node.left = element
+            next_node.right = next_node
+            segments_queue.put(next_node)
+    return element
 
-    return build_structure(queue_elements)
 
             
 
