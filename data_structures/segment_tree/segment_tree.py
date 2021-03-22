@@ -56,6 +56,10 @@ class Interval:
         self.right = right
         self.closed = closed
 
+
+    def __eq__(self, target):
+        return self.left == target.left and self.right == target.right and self.closed == target.closed
+
     def __repr__(self):
         interval = F"{self.left},{self.right}"
         if self.closed == 'both':
@@ -81,9 +85,10 @@ class Interval:
             self.closed == 'right' and self.left < value <= self.right
 
     def union(self, target):
-        ## fix union, left bounded values are wrong!
-        ## fix union !! is too damn wrong!!! 
-        self.merged = True
+    # segment1 = Interval(-math.inf, -6, 'right')
+    # segment2 = Interval(-math.inf, -5, 'neither')
+    ## fix union, left bounded values are wrong!
+        ## fix union !! is too damn wrong!!!  ]-inf, -6] U ]-6, -5[
         left, right, = None, None
         closed_info = {'left': None, 'right': None}
         if self.left < target.left:
@@ -108,9 +113,9 @@ class Interval:
             right = target.right
             closed_info['right'] = target.closed
 
-        closed = 'neither' if closed_info['left'] == 'neither' and closed_info['right'] == 'neither'                    \
+        closed = 'neither' if closed_info['left'] in ['neither', 'right'] and closed_info['right'] in ['neither', 'left']                    \
             else 'right' if closed_info['left'] in ['right', 'neither'] and closed_info['right'] in ['right', 'both']   \
-            else 'left' if closed_info['right'] in ['left', 'neither'] and closed_info['left'] in ['left', 'both']      \
+            else 'left' if closed_info['right'] in ['left', 'neither'] and closed_info['left'] in ['left','both']      \
             else 'both'
 
         return Interval(left, right, closed)
@@ -155,8 +160,8 @@ def build_elementary_segments(segments=[Interval]):
 
 def build_segments_queue_nodes(elementary_segments_queue=()):
     queue = Queue()
-    while not elementary_segments.empty():
-        seg = elementary_segments.get()
+    while not elementary_segments_queue.empty():
+        seg = elementary_segments_queue.get()
         node = Node(seg)
         queue.put(node)
     return queue
@@ -176,6 +181,10 @@ def build_1d_segment_tree(segments_queue=Queue()):
         if not current.merged:
             next_element = segments_queue.get()
             union_node = Node(current.value.union(next_element.value))
+            union_node.left = Node(current.value)
+            union_node.right = Node(next_element.value)
+            union_node.merged = True
+            
             segments_queue.queue.insert(current_index, union_node)
             current_index += 1
             
@@ -183,14 +192,15 @@ def build_1d_segment_tree(segments_queue=Queue()):
     element =  None
     while not segments_queue.empty():
         element = segments_queue.get()
-        next_element = segments_queue.get()
-        if not next_element:
+        if segments_queue.empty():
             break
         else:
+            next_element = segments_queue.get()
             next_node = Node(element.value.union(next_element.value))
             next_node.left = element
-            next_node.right = next_node
+            next_node.right = next_element
             segments_queue.put(next_node)
+            
     return element
 
 
@@ -198,10 +208,14 @@ def build_1d_segment_tree(segments_queue=Queue()):
 
 
 segments = [Interval(-6, -5, 'both'), Interval(-2, 1, 'both'),
-            Interval(0, 2, 'both'), Interval(3, 6, 'both'), ]
+        Interval(0, 2, 'both'), Interval(3, 6, 'both'), ]
 elementary_segments = build_elementary_segments(segments)
-
-pprint(build_1d_segment_tree(elementary_segments))
+#]-inf, -6] U ]-6, -5[ = ]-inf, -5[ 
+#segment1 = Interval(-math.inf, -2, 'neither')
+#segment2 = Interval(-2, 1, 'both')
+#print(segment1.union(segment2))
+tree = build_1d_segment_tree(elementary_segments)
+print(tree.value)
 
 
 # TODO - Intervals operations that going to be used: in, union, intersect
