@@ -14,6 +14,7 @@ numpy = "*"
 pillow = "*"
 pyrr = "*"
 svgwrite = "*"
+pandas = "*"
 
 [requires]
 python_version = "3.7"

@@ -55,6 +55,8 @@ class Interval:
         self.left = left
         self.right = right
         self.closed = closed
+        self.closed_left = closed in ['left', 'both']
+        self.closed_right = closed in ['right', 'both']
 
 
     def __eq__(self, target):
@@ -120,8 +122,16 @@ class Interval:
 
         return Interval(left, right, closed)
 
-    def intersect(self, range):
-        return False
+    def intersect(self, target):
+        if target.closed_left:
+            return target.left in self or \
+                self.left < target.right< self.right
+        elif target.closed_right:
+            return target.right in self or \
+                self.left < target.left < self.right
+        else:
+            return target.left < self.left < target.right or \
+                target.left < self.right < target.right
 
     def inside(self, range):
         return False
@@ -203,7 +213,6 @@ def build_1d_segment_tree(segments_queue=Queue()):
             
     return element
 
-
             
 
 
@@ -214,9 +223,9 @@ elementary_segments = build_elementary_segments(segments)
 #segment1 = Interval(-math.inf, -2, 'neither')
 #segment2 = Interval(-2, 1, 'both')
 #print(segment1.union(segment2))
+
 tree = build_1d_segment_tree(elementary_segments)
 print(tree.value)
-
 
 # TODO - Intervals operations that going to be used: in, union, intersect
 # TODO - build tree
