@@ -16,6 +16,7 @@ class Node:
     left = None
     right = None
     value = None
+    segments = []
 
     def __init__(self, value=None):
         self.value = value
@@ -62,6 +63,9 @@ class Interval:
     def __eq__(self, target):
         return self.left == target.left and self.right == target.right and self.closed == target.closed
 
+    def __hash__(self):
+        return hash(str(self))
+    
     def __repr__(self):
         interval = F"{self.left},{self.right}"
         if self.closed == 'both':
@@ -122,8 +126,11 @@ class Interval:
 
         return Interval(left, right, closed)
 
+    # ]-inf, -6] interset [-6, -5]
     def intersect(self, target):
-        if target.closed_left:
+        if target.closed_left and target.closed_right:
+            return target.left in self or target.right in self
+        elif target.closed_left:
             return target.left in self or \
                 self.left < target.right< self.right
         elif target.closed_right:
@@ -133,9 +140,18 @@ class Interval:
             return target.left < self.left < target.right or \
                 target.left < self.right < target.right
 
-    def inside(self, range):
-        return False
-
+    def contains(self, target):
+        if self.closed_left and self.closed_right:
+            return target.left in self and target.right in self
+        elif self.closed_left:
+            return target.left in self and \
+                self.left < target.right < self.right
+        elif self.closed_right:
+            return target.right in self and \
+                self.left < target.left < self.right
+        else:
+            return target.left < self.left < target.right and \
+                target.left < self.right < target.right
 
 # one dimensional segment tree
 def build_elementary_segments(segments=[Interval]):
@@ -197,8 +213,7 @@ def build_1d_segment_tree(segments_queue=Queue()):
             
             segments_queue.queue.insert(current_index, union_node)
             current_index += 1
-            
-    
+
     element =  None
     while not segments_queue.empty():
         element = segments_queue.get()
@@ -213,11 +228,18 @@ def build_1d_segment_tree(segments_queue=Queue()):
             
     return element
 
-            
+def insert_segment_tree(node, segment):
+    if segment.contains(node.value):
+        node.segments = [*node.segments, segment]
+    elif not node.is_leaf():
+        if node.left.value.intersect(segment):
+            insert_segment_tree(node.left, segment)
+        if node.right.value.intersect(segment):
+            insert_segment_tree(node.right, segment)
+    return node
 
 
-segments = [Interval(-6, -5, 'both'), Interval(-2, 1, 'both'),
-        Interval(0, 2, 'both'), Interval(3, 6, 'both'), ]
+segments = [Interval(-3,-1,'both'), Interval(-2,1,'both'), Interval(1,5,'both'), Interval(6,7,'both')]
 elementary_segments = build_elementary_segments(segments)
 #]-inf, -6] U ]-6, -5[ = ]-inf, -5[ 
 #segment1 = Interval(-math.inf, -2, 'neither')
@@ -226,6 +248,14 @@ elementary_segments = build_elementary_segments(segments)
 
 tree = build_1d_segment_tree(elementary_segments)
 print(tree.value)
+#  ]-inf, -6] interset [-6, -5]
+#i1 = Interval(-math.inf, -6, 'right')
+#i2 = Interval(-6, -5, 'both')
+#print(i1.intersect(i2))
 
+tree2 = insert_segment_tree(tree, segments[0])
+
+print(tree2)
+print(tree2.segments)
 # TODO - Intervals operations that going to be used: in, union, intersect
 # TODO - build tree
