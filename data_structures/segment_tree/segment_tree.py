@@ -236,7 +236,6 @@ def insert_segment_tree(node, segment):
             insert_segment_tree(node.left, segment)
         if node.right.value.intersect(segment):
             insert_segment_tree(node.right, segment)
-    return node
 
 
 segments = [Interval(-3,-1,'both'), Interval(-2,1,'both'), Interval(1,5,'both'), Interval(6,7,'both')]
@@ -253,9 +252,7 @@ print(tree.value)
 #i2 = Interval(-6, -5, 'both')
 #print(i1.intersect(i2))
 
-tree2 = insert_segment_tree(tree, segments[0])
+insert_segment_tree(tree, segments[0])
 
-print(tree2)
-print(tree2.segments)
 # TODO - Intervals operations that going to be used: in, union, intersect
 # TODO - build tree
