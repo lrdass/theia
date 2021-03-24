@@ -182,7 +182,29 @@ def build_elementary_segments(segments=[Interval]):
 
     return elementary_segments
         
-        
+def build_elementary_segments_(segments=[Interval]):
+    ordered_segment_endpoints = []
+    for segment in segments:
+        ordered_segment_endpoints.append(segment.left)
+        ordered_segment_endpoints.append(segment.right)
+    ordered_segment_endpoints = list(dict.fromkeys(ordered_segment_endpoints))
+    ordered_segment_endpoints.sort()
+
+    elementary_segments=Queue()
+    for index, endpoint in enumerate(ordered_segment_endpoints):
+        if index == 0:
+           elementary_segments.put(Interval(-math.inf, endpoint, 'neither')) 
+           elementary_segments.put(Interval(endpoint, endpoint, 'both'))
+        elif index == len(ordered_segment_endpoints) -1:
+            previous_endpoint= ordered_segment_endpoints[index-1]
+            elementary_segments.put(Interval(previous_endpoint, endpoint, 'neither'))
+            elementary_segments.put(Interval(endpoint, endpoint, 'both'))
+            elementary_segments.put(Interval(endpoint, math.inf, 'neither'))
+        else:
+            previous_endpoint = ordered_segment_endpoints[index-1]
+            elementary_segments.put(Interval(previous_endpoint, endpoint, 'neither'))
+            elementary_segments.put(Interval(endpoint, endpoint, 'both'))
+    return elementary_segments        
 
 def build_segments_queue_nodes(elementary_segments_queue=()):
     queue = Queue()
@@ -201,15 +223,18 @@ def build_1d_segment_tree(segments_queue=Queue()):
     segments_queue = build_segments_queue_nodes(segments_queue)
     min_fifo_len = floor(log2(len(segments_queue.queue))) 
     # is it safe to assume that this will only happen before going through all the leafs?
+    current_index = 0
     while not len(segments_queue.queue) == 2 ** min_fifo_len:
-        current_index = 0
-        current = segments_queue.get()
+        current = segments_queue.queue[current_index]
         if not current.merged:
-            next_element = segments_queue.get()
+            next_element = segments_queue.queue[current_index+1]
             union_node = Node(current.value.union(next_element.value))
             union_node.left = Node(current.value)
             union_node.right = Node(next_element.value)
             union_node.merged = True
+
+            del segments_queue.queue[current_index]
+            del segments_queue.queue[current_index]
             
             segments_queue.queue.insert(current_index, union_node)
             current_index += 1
@@ -239,7 +264,7 @@ def insert_segment_tree(node, segment):
 
 
 segments = [Interval(-3,-1,'both'), Interval(-2,1,'both'), Interval(1,5,'both'), Interval(6,7,'both')]
-elementary_segments = build_elementary_segments(segments)
+elementary_segments = build_elementary_segments_(segments)
 #]-inf, -6] U ]-6, -5[ = ]-inf, -5[ 
 #segment1 = Interval(-math.inf, -2, 'neither')
 #segment2 = Interval(-2, 1, 'both')
@@ -248,11 +273,6 @@ elementary_segments = build_elementary_segments(segments)
 tree = build_1d_segment_tree(elementary_segments)
 print(tree.value)
 #  ]-inf, -6] interset [-6, -5]
-#i1 = Interval(-math.inf, -6, 'right')
-#i2 = Interval(-6, -5, 'both')
-#print(i1.intersect(i2))
 
 insert_segment_tree(tree, segments[0])
 
-# TODO - Intervals operations that going to be used: in, union, intersect
-# TODO - build tree
