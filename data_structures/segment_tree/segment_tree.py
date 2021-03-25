@@ -154,35 +154,8 @@ class Interval:
                 target.left < self.right < target.right
 
 # one dimensional segment tree
+       
 def build_elementary_segments(segments=[Interval]):
-    ## there is a bug here : generating segment ]1,0[ 
-    ordered_segments = sorted(segments, key=lambda seg: seg.left)
-    elementary_segments = Queue()
-    
-    for index, segment in enumerate(ordered_segments):
-        if index == 0:
-            elementary_segments.put(Interval(-math.inf, segment.left, 'neither'))
-            elementary_segments.put(Interval(segment.left, segment.left, 'both'))
-            elementary_segments.put(Interval(segment.left, segment.right, 'neither'))
-            elementary_segments.put(Interval(segment.right, segment.right, 'both'))
-        elif index == len(ordered_segments) -1:
-            previous_segment=ordered_segments[index-1] 
-            elementary_segments.put(Interval(previous_segment.right, segment.left, 'neither'))
-            elementary_segments.put(Interval(segment.left, segment.left, 'both'))
-            elementary_segments.put(Interval(segment.left, segment.right, 'neither'))
-            elementary_segments.put(Interval(segment.right, segment.right, 'both'))
-            elementary_segments.put(Interval(segment.right, math.inf, 'neither'))
-            break
-        else:
-            previous_segment = ordered_segments[index-1]
-            elementary_segments.put(Interval(previous_segment.right, segment.left, 'neither'))
-            elementary_segments.put(Interval(segment.left, segment.left, 'both'))
-            elementary_segments.put(Interval(segment.left, segment.right, 'neither'))
-            elementary_segments.put(Interval(segment.right, segment.right, 'both'))
-
-    return elementary_segments
-        
-def build_elementary_segments_(segments=[Interval]):
     ordered_segment_endpoints = []
     for segment in segments:
         ordered_segment_endpoints.append(segment.left)
@@ -262,9 +235,20 @@ def insert_segment_tree(node, segment):
         if node.right.value.intersect(segment):
             insert_segment_tree(node.right, segment)
 
+def query_segment_tree(node, query,segment_to_report=set()):
+    for segment in node.segments:
+        segment_to_report.add(segment)
+    if not node.is_leaf():
+        if query in node.left.value:
+            query_segment_tree(node.left, query, segment_to_report)
+        else:
+            query_segment_tree(node.right, query, segment_to_report)
+    return segment_to_report
+
+
 
 segments = [Interval(-3,-1,'both'), Interval(-2,1,'both'), Interval(1,5,'both'), Interval(6,7,'both')]
-elementary_segments = build_elementary_segments_(segments)
+elementary_segments = build_elementary_segments(segments)
 #]-inf, -6] U ]-6, -5[ = ]-inf, -5[ 
 #segment1 = Interval(-math.inf, -2, 'neither')
 #segment2 = Interval(-2, 1, 'both')
@@ -274,5 +258,8 @@ tree = build_1d_segment_tree(elementary_segments)
 print(tree.value)
 #  ]-inf, -6] interset [-6, -5]
 
-insert_segment_tree(tree, segments[0])
+for segment in segments:
+    insert_segment_tree(tree, segment)
 
+segments_query = query_segment_tree(tree, 1)
+print(segments_query)
