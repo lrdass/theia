@@ -10,6 +10,31 @@ BOTH = 'both'
 LEFT = 'left'
 RIGHT = 'right'
 
+class Segment:
+    class Range:
+        def __init__(self, min_value, max_value):
+            self.min = min_value
+            self.max = max_value     
+    x = None
+    y = None
+    
+    def __init__(self, x_range=(-math.inf,math.inf), y_range=(-math.inf,math.inf)):
+        self.x = self.Range(min(x_range), max(x_range))
+        self.y = self.Range(min(y_range), max(y_range))
+    
+    def __repr__(self):
+        return 'x : [{},{}], y :[{}, {}]'.format(self.x.min, self.x.max, self.y.min, self.y.max)
+    
+    def __getitem__(self, name):
+        return getattr(self, name)
+    def __setitem__(self, name, value):
+        return setattr(self, name, value)
+    def __delitem__(self, name):
+        return delattr(self, name)
+    def __contains__(self, name):
+        return hasattr(self, name)
+
+
 
 class Node:
     merged = False
@@ -154,6 +179,30 @@ class Interval:
                 target.left < self.right < target.right
 
 # one dimensional segment tree
+def report_subtree(node=Node, points=[]):
+    if node.is_leaf():
+        points.append(node.value)
+    else:
+        report_subtree(node.left, points)
+        report_subtree(node.right, points)
+    
+    return set(points)
+
+def find_split_node(node=Node, range=Segment.Range):
+    no = node
+
+    while not no.is_leaf():
+        if range.max <= no.value  or range.min > no.value:
+            if range.max <= no.value :
+                no = no.left
+            else:
+                no = no.right
+        else:
+            break
+
+    return no
+
+
        
 def build_elementary_segments(segments=[Interval]):
     ordered_segment_endpoints = []
@@ -223,7 +272,6 @@ def build_1d_segment_tree(segments_queue=Queue()):
             next_node.left = element
             next_node.right = next_element
             segments_queue.put(next_node)
-            
     return element
 
 def insert_segment_tree(node, segment):
@@ -234,6 +282,17 @@ def insert_segment_tree(node, segment):
             insert_segment_tree(node.left, segment)
         if node.right.value.intersect(segment):
             insert_segment_tree(node.right, segment)
+"""
+* construir segment tree com os x intervalos
+    * preciso trocar a expressao de segmentos para intervalos
+* metodo: insert_segment_tree:
+    - se intervalo_x do segmento contem o valor do nó
+    - insere o segmento na lista de segmentos
+    - por fim, vamos ter a árvore de segmentos(x_interalos dos segmentos) com a lista de Segmentos nos nós
+    - passa por cada nó e constrói uma árvore associada com os y_intervalos dos segmentos em cada um dos nós que tiver
+- consulta:
+    -  consulta em uma e consulta a arvore associada
+"""
 
 def query_segment_tree(node, query,segment_to_report=set()):
     for segment in node.segments:
@@ -245,21 +304,67 @@ def query_segment_tree(node, query,segment_to_report=set()):
             query_segment_tree(node.right, query, segment_to_report)
     return segment_to_report
 
+def build_associated_tree(points=[], axis=1): 
+    sorted_points = sorted(points, key=lambda point: point[axis])
+    n = len(points)
+    
+    mid_point = int((n-1) / 2)
+    split_value = sorted_points[mid_point][axis]
+    if n == 1:
+        no = Node(points.pop()) 
+        return no
+    else:
+        no = Node(split_value)
+        no.left = build_associated_tree(sorted_points[:mid_point+1])
+        no.right = build_associated_tree(sorted_points[mid_point+1:])
+        return no
 
+def search_in_range_1d(tree, range=Segment.Range, axis=1):
+    split = find_split_node(tree, range)
+    inside = [] 
 
-segments = [Interval(-3,-1,'both'), Interval(-2,1,'both'), Interval(1,5,'both'), Interval(6,7,'both')]
-elementary_segments = build_elementary_segments(segments)
-#]-inf, -6] U ]-6, -5[ = ]-inf, -5[ 
-#segment1 = Interval(-math.inf, -2, 'neither')
-#segment2 = Interval(-2, 1, 'both')
-#print(segment1.union(segment2))
+    if split.is_leaf():
+        if range.min <= split.value[axis] <= range.max:
+            inside.append(split.value)
+    else:
+        no = split.left
+        while not no.is_leaf():
+            if range.min <= no.value:
+                inside.extend(report_subtree(node=no.right))
+                no = no.left
+            else:
+                no = no.right 
+        # aqui ta chegando uma tupla
+        if range.min < no.value[axis] <= range.max:
+            inside.append(no.value)
+
+        no = split.right
+        while not no.is_leaf():
+            if range.max > no.value:
+                inside.extend(report_subtree(node=no.left))
+                no = no.right
+            else:
+                no = no.left 
+        if range.min < no.value[axis] <= range.max:
+            inside.append(no.value)
+        
+    return set(inside)
+
+def build_2d_segment_tree(segments=[]):
+    pass
+ 
+segments = [Segment((-3,-1), (0, 1)), Segment((-2,1),(0,-8)), Segment((1,5),(1,-2)), Segment((6,7),(-4, 2))]
+# generating a list of x_intervals of the list of segments
+x_intervals_of_segments = list(map(lambda segment: Interval(segment.x.min, segment.x.max, 'both'), segments))
+print(x_intervals_of_segments)
+
+elementary_segments = build_elementary_segments(x_intervals_of_segments)
 
 tree = build_1d_segment_tree(elementary_segments)
 print(tree.value)
-#  ]-inf, -6] interset [-6, -5]
 
-for segment in segments:
-    insert_segment_tree(tree, segment)
+for x_interval in x_intervals_of_segments :
+    insert_segment_tree(tree, x_interval)
 
 segments_query = query_segment_tree(tree, 1)
 print(segments_query)
