@@ -4,66 +4,8 @@ from queue import Queue
 from pprint import pprint
 from numbers import Number
 from random import randint
+from functools import reduce
 
-NEITHER = 'neither'
-BOTH = 'both'
-LEFT = 'left'
-RIGHT = 'right'
-
-class Segment:
-    class Range:
-        def __init__(self, min_value, max_value):
-            self.min = min_value
-            self.max = max_value     
-    x = None
-    y = None
-    
-    def __init__(self, x_range=(-math.inf,math.inf), y_range=(-math.inf,math.inf)):
-        self.x = self.Range(min(x_range), max(x_range))
-        self.y = self.Range(min(y_range), max(y_range))
-    
-    def __repr__(self):
-        return 'x : [{},{}], y :[{}, {}]'.format(self.x.min, self.x.max, self.y.min, self.y.max)
-    
-    def __getitem__(self, name):
-        return getattr(self, name)
-    def __setitem__(self, name, value):
-        return setattr(self, name, value)
-    def __delitem__(self, name):
-        return delattr(self, name)
-    def __contains__(self, name):
-        return hasattr(self, name)
-
-
-
-class Node:
-    merged = False
-    left = None
-    right = None
-    value = None
-    segments = []
-
-    def __init__(self, value=None):
-        self.value = value
-        self.left = None
-        self.right = None
-
-    def is_leaf(self):
-        return self.left is None and self.right is None
-
-    def __str__(self, level=0):
-        ret = '\t'*level+repr(self.value)+'\n'
-        if not self.is_leaf():
-            ret += '{}'.format(self.right.__str__(level+1))
-            ret += '{}'.format(self.left.__str__(level+1))
-            return ret
-        return ret
-
-    def __repr__(self):
-        return 'Node {}'.format(self.value)
-
-
-# rework on interval class to represent mathematical intervals
 class Interval:
     left = None
     right = None
@@ -178,6 +120,65 @@ class Interval:
             return target.left < self.left < target.right and \
                 target.left < self.right < target.right
 
+
+class Segment:
+    class Range:
+        def __init__(self, min_value, max_value):
+            self.min = min_value
+            self.max = max_value     
+    x = None
+    x_interval = Interval()
+    y = None
+    y_interval = Interval()
+    
+    def __init__(self, x_range=(-math.inf,math.inf), y_range=(-math.inf,math.inf)):
+        self.x = self.Range(min(x_range), max(x_range))
+        self.y = self.Range(min(y_range), max(y_range))
+        self.x_interval = Interval(self.x.min, self.x.max, 'both')
+        self.y_interval = Interval(self.y.min, self.y.max, 'both')
+    
+    def __repr__(self):
+        return 'x : [{},{}], y :[{}, {}]'.format(self.x.min, self.x.max, self.y.min, self.y.max)
+    
+    def __getitem__(self, name):
+        return getattr(self, name)
+    def __setitem__(self, name, value):
+        return setattr(self, name, value)
+    def __delitem__(self, name):
+        return delattr(self, name)
+    def __contains__(self, name):
+        return hasattr(self, name)
+
+
+
+class Node:
+    merged = False
+    left = None
+    right = None
+    value = None
+    segments = []
+
+    def __init__(self, value=None):
+        self.value = value
+        self.left = None
+        self.right = None
+
+    def is_leaf(self):
+        return self.left is None and self.right is None
+
+    def __str__(self, level=0):
+        ret = '\t'*level+repr(self.value)+'\n'
+        if not self.is_leaf():
+            ret += '{}'.format(self.right.__str__(level+1))
+            ret += '{}'.format(self.left.__str__(level+1))
+            return ret
+        return ret
+
+    def __repr__(self):
+        return 'Node {}'.format(self.value)
+
+
+# rework on interval class to represent mathematical intervals
 # one dimensional segment tree
 def report_subtree(node=Node, points=[]):
     if node.is_leaf():
@@ -274,14 +275,24 @@ def build_1d_segment_tree(segments_queue=Queue()):
             segments_queue.put(next_node)
     return element
 
-def insert_segment_tree(node, segment):
-    if segment.contains(node.value):
+def insert_interval_on_segment_tree(node, interval):
+    if interval.contains(node.value):
+        node.segments = [*node.segments, interval]
+    elif not node.is_leaf():
+        if node.left.value.intersect(interval):
+            insert_interval_on_segment_tree(node.left, interval)
+        if node.right.value.intersect(interval):
+            insert_interval_on_segment_tree(node.right, interval)
+ 
+
+def insert_segment_on_segment_tree(node, segment=Segment):
+    if segment.x_interval.contains(node.value):
         node.segments = [*node.segments, segment]
     elif not node.is_leaf():
-        if node.left.value.intersect(segment):
-            insert_segment_tree(node.left, segment)
-        if node.right.value.intersect(segment):
-            insert_segment_tree(node.right, segment)
+        if node.left.value.intersect(segment.x_interval):
+            insert_segment_on_segment_tree(node.left, segment)
+        if node.right.value.intersect(segment.x_interval):
+            insert_segment_on_segment_tree(node.right, segment)
 """
 * construir segment tree com os x intervalos
     * preciso trocar a expressao de segmentos para intervalos
@@ -302,6 +313,18 @@ def query_segment_tree(node, query,segment_to_report=set()):
             query_segment_tree(node.left, query, segment_to_report)
         else:
             query_segment_tree(node.right, query, segment_to_report)
+    return segment_to_report
+
+def query_2d_segment_tree(node, query=Segment,segment_to_report=set()):
+    # optimization for tree search
+    for segment in node.segments:
+        if segment.y_interval.left in query.y_interval or segment.y_interval.right in query.y_interval:
+            segment_to_report.add(segment)
+    if not node.is_leaf():
+        if query.x_interval.left in node.left.value:
+            query_2d_segment_tree(node.left, query, segment_to_report)
+        else:
+            query_2d_segment_tree(node.right, query, segment_to_report)
     return segment_to_report
 
 def build_associated_tree(points=[], axis=1): 
@@ -351,20 +374,52 @@ def search_in_range_1d(tree, range=Segment.Range, axis=1):
     return set(inside)
 
 def build_2d_segment_tree(segments=[]):
-    pass
- 
+
+    x_intervals_of_segments= list(map(lambda segment: segment.x_interval, segments))
+    elementary_segments = build_elementary_segments(x_intervals_of_segments)
+
+    segment_tree = build_1d_segment_tree(elementary_segments)
+
+    point_segment_map = dict([(segment.x_interval, segment) for segment in segments])
+    point_segment_map.update(dict([(segment.y_interval, segment) for segment in segments]))
+
+    for segment in segments :
+        insert_segment_on_segment_tree(segment_tree, segment)
+    
+
+
+    #construct_associated_tree(segment_tree)
+    return segment_tree
+
+
+def build_range_tree(points, point_segment_map={}):
+    y_tree = build_associated_tree(copy(points))
+
+    n = len(points)
+    sorted_points = sorted(points, key=lambda point: point[0])
+    mid_point = int( (n-1)/2 )
+
+    if n == 1:
+        no = Node(points.pop()) 
+        no.associated = y_tree
+        return no
+    else:
+        no = Node(sorted_points[mid_point][0])
+        no.left = build_range_tree(sorted_points[:mid_point+1])
+        no.right = build_range_tree(sorted_points[mid_point+1:])
+        no.associated = y_tree
+        return no
+
 segments = [Segment((-3,-1), (0, 1)), Segment((-2,1),(0,-8)), Segment((1,5),(1,-2)), Segment((6,7),(-4, 2))]
 # generating a list of x_intervals of the list of segments
-x_intervals_of_segments = list(map(lambda segment: Interval(segment.x.min, segment.x.max, 'both'), segments))
-print(x_intervals_of_segments)
+#x_intervals_of_segments = list(map(lambda segment: Interval(segment.x.min, segment.x.max, 'both'), segments))
+#print(x_intervals_of_segments)
 
-elementary_segments = build_elementary_segments(x_intervals_of_segments)
+#elementary_segments = build_elementary_segments(x_intervals_of_segments)
 
-tree = build_1d_segment_tree(elementary_segments)
-print(tree.value)
+## checa se algum segmento cruza alguam extremidade da janela
+segment_tree = build_2d_segment_tree(segments)
+print(segment_tree.value)
 
-for x_interval in x_intervals_of_segments :
-    insert_segment_tree(tree, x_interval)
-
-segments_query = query_segment_tree(tree, 1)
-print(segments_query)
+inside = query_2d_segment_tree(segment_tree, query=Segment(x_range=(1,1), y_range=(-8, 8)))
+print(inside)
