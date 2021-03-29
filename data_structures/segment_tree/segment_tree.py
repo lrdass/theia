@@ -7,6 +7,8 @@ from random import randint
 from functools import reduce
 from itertools import chain
 from collections import defaultdict, OrderedDict
+import svgwrite
+import xml.etree.ElementTree as ET
 
 
 class Interval:
@@ -180,6 +182,72 @@ class Node:
 
     def __repr__(self):
         return 'Node {}'.format(self.value)
+
+
+def line_to_segment(line):
+    line_dict = line.attrib
+    if line_dict['stroke'] == 'black':
+        p1 = (int(line_dict['x1']), int(line_dict['x2']))
+        p2 = (int(line_dict['y1']), int(line_dict['y2']))
+        return Segment(p1, p2)
+    return
+
+
+def read_svg_file(svg_file):
+    return ET.parse(svg_file)
+
+
+def colorize_segments_inside(segments_inside, svg_tree):
+    for line in svg_tree.iter('{http://www.w3.org/2000/svg}line'):
+        line_segment = line_to_segment(line)
+        if line_segment in segments_inside:
+            line.attrib['stroke'] = 'green'
+    svg_tree.write('inside_segments.svg')
+
+
+def create_svg_segments(file_name, size=(200, 200), segments=[], number_segments=30, window=Interval, inside_segments=[]):
+    dwg = svgwrite.Drawing(file_name, size=size)
+
+    dwg.viewbox(-size[0]/2, -size[1]/2, size[0], size[1])
+    g = svgwrite.container.Group()
+    g.scale(1, -1)
+
+    # window min-x, min-y
+    # x_rand = random.randint(-size[0]/2, size[0]/2)
+    # y_rand = random.randint(-size[0]/2, size[0]/2)
+
+    # g.add(dwg.line(
+    #     insert=(x_rand, y_rand),
+    #     size=(40, 40),
+    #     rx=None, ry=None, fill='none', stroke='red')
+    # )
+
+    # g.add(dwg.rect(
+    #                 insert=(window.x.min, window.y.min),
+    #                 size=(abs(window.x.min-window.x.max), abs(window.y.min-window.y.max)),
+    #                 rx=None, ry=None, fill='none', stroke='red', stroke_width=0.5)
+    # )
+    # # for segment in segments:
+    #     if segment in inside_segments:
+    #         g.add(
+    #             dwg.line(start=segment.p1, end=segment.p2, stroke='green',  stroke_width=0.5)
+    #         )
+    #     else:
+    #         g.add(
+    #             dwg.line(start=segment.p1, end=segment.p2, stroke='black',  stroke_width=0.5)
+    #         )
+    for i in range(number_segments):
+        x_rand1 = randint(-size[0]/2, size[0]/2)
+        x_rand2 = randint(-size[0]/2, size[0]/2)
+        y_rand1 = randint(-size[0]/2, size[0]/2)
+        y_rand2 = randint(-size[0]/2, size[0]/2)
+        g.add(
+            dwg.line(start=(x_rand1, y_rand1), end=(
+                x_rand2, y_rand2), stroke='black')
+        )
+
+    dwg.add(g)
+    dwg.save()
 
 
 # rework on interval class to represent mathematical intervals
@@ -366,14 +434,14 @@ def query_segment_tree(node, query, segment_to_report=set()):
 def query_2d_segment_tree(node, query=Segment, segment_to_report=set()):
     # optimization for tree search
     # linear search
-    # for segment in node.segments:
-    #     if segment.y_interval.left in query.y_interval or segment.y_interval.right in query.y_interval:
-    #         segment_to_report.add(segment)
-    #
-    if node.segments:
-        segment_to_report.update(
-            search_in_range_1d(node.segments, range=query.y)
-        )
+    for segment in node.segments:
+        if segment.y_interval.left in query.y_interval or segment.y_interval.right in query.y_interval:
+            segment_to_report.add(segment)
+
+    # if node.segments:
+    #     segment_to_report.update(
+    #         search_in_range_1d(node.segments, range=query.y)
+    #     )
 
     if not node.is_leaf():
         if query.x_interval.left in node.left.value:
@@ -450,7 +518,9 @@ def build_2d_segment_tree(segments=[]):
     for segment in segments:
         insert_segment_on_segment_tree(segment_tree, segment)
 
-    _build_associated_range_y_tree(segment_tree)
+    # tree search
+    # _build_associated_range_y_tree(segment_tree)
+
     # build a range tree on flatten points of y_intervals
     # then, map every segment to those points ..not optmal, but ok
 
@@ -467,8 +537,40 @@ segments = [Segment((-3, -1), (0, 1)), Segment((-2, 1), (0, -8)),
 #elementary_segments = build_elementary_segments(x_intervals_of_segments)
 
 # checa se algum segmento cruza alguam extremidade da janela
-segment_tree = build_2d_segment_tree(segments)
+# segment_tree = build_2d_segment_tree(segments)
 
-inside = query_2d_segment_tree(
-    segment_tree, query=Segment(x_range=(1, 1), y_range=(-8, 8)))
-print(inside)
+# inside = query_2d_segment_tree(
+#     segment_tree, query=Segment(x_range=(1, 1), y_range=(-8, 8)))
+# print(inside)
+
+
+# create_svg_segments("segments_random.svg")
+
+svg_tree = read_svg_file("segments_to_study.svg")
+segments = [line_to_segment(line) for line in svg_tree.iter(
+    '{http://www.w3.org/2000/svg}line')
+]
+segments = [segment for segment in segments
+            if segment]
+
+line_query = None
+for line in svg_tree.iter('{http://www.w3.org/2000/svg}line'):
+    try:
+        if line.attrib['id'] == 'query-line':
+            p1 = (int(line.attrib['x1']), int(line.attrib['x2']))
+            p2 = (int(line.attrib['y1']), int(line.attrib['y2']))
+            line_query = Segment(p1, p2)
+    except:
+        continue
+
+
+pprint(segments)
+print('line query', line_query)
+
+
+# print('build segment tree')
+segment_tree = build_2d_segment_tree(segments)
+# print(segment_tree)
+
+inside = query_2d_segment_tree(segment_tree, line_query)
+print('segments inside: ', inside)
