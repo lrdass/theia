@@ -316,7 +316,7 @@ def insert_segment_on_segment_tree(node, segment=Segment):
 """
 
 
-def search_in_range_1d(tree, range=Interval.Range, axis=1):
+def search_in_range_1d(tree, range=Segment.Range):
     split = find_split_node(tree, range)
     inside = []
 
@@ -332,7 +332,7 @@ def search_in_range_1d(tree, range=Interval.Range, axis=1):
             else:
                 no = no.right
         # aqui ta chegando uma tupla
-        if range.min < no.value[axis] <= range.max:
+        if range.min < no.value <= range.max:
             inside.append(no.value)
 
         no = split.right
@@ -342,45 +342,14 @@ def search_in_range_1d(tree, range=Interval.Range, axis=1):
                 no = no.right
             else:
                 no = no.left
-        if range.min < no.value[axis] <= range.max:
+        if range.min < no.value <= range.max:
             inside.append(no.value)
 
-    return set(inside)
+    segments_to_return = set()
+    for point in inside:
+        segments_to_return.update(tree.y_intervals_segment_map[point])
 
-
-# change to be 1d
-
-
-def search_in_range_1d(tree, range=Segment.Range, axis=1):
-    split = find_split_node(tree, range)
-    inside = []
-
-    if split.is_leaf():
-        if range.min <= split.value[axis] <= range.max:
-            inside.append(split.value)
-    else:
-        no = split.left
-        while not no.is_leaf():
-            if range.min <= no.value:
-                inside.extend(report_subtree(node=no.right))
-                no = no.left
-            else:
-                no = no.right
-        # aqui ta chegando uma tupla
-        if range.min < no.value[axis] <= range.max:
-            inside.append(no.value)
-
-        no = split.right
-        while not no.is_leaf():
-            if range.max > no.value:
-                inside.extend(report_subtree(node=no.left))
-                no = no.right
-            else:
-                no = no.left
-        if range.min < no.value[axis] <= range.max:
-            inside.append(no.value)
-
-    return set(inside)
+    return segments_to_return
 
 
 def query_segment_tree(node, query, segment_to_report=set()):
@@ -402,7 +371,7 @@ def query_2d_segment_tree(node, query=Segment, segment_to_report=set()):
     #         segment_to_report.add(segment)
     #
     if node.segments:
-        segment_to_report.extend(
+        segment_to_report.update(
             search_in_range_1d(node.segments, range=query.y)
         )
 
@@ -414,7 +383,7 @@ def query_2d_segment_tree(node, query=Segment, segment_to_report=set()):
     return segment_to_report
 
 
-def build_associated_tree(points=[]):
+def build_associated_tree(points=[], y_intervals_segment_map=dict()):
     sorted_points = sorted(points)
     n = len(points)
 
@@ -425,8 +394,11 @@ def build_associated_tree(points=[]):
         return no
     else:
         no = Node(split_value)
-        no.left = build_associated_tree(sorted_points[:mid_point+1])
-        no.right = build_associated_tree(sorted_points[mid_point+1:])
+        no.left = build_associated_tree(
+            sorted_points[:mid_point+1], y_intervals_segment_map)
+        no.right = build_associated_tree(
+            sorted_points[mid_point+1:], y_intervals_segment_map)
+        no.y_intervals_segment_map = y_intervals_segment_map
         return no
 
 
@@ -441,14 +413,28 @@ def build_2d_segment_tree(segments=[]):
                     ]
                 )
             )
-            node.y_intervals_segment_map = {}
-            node.segments = build_associated_tree(all_y_endpoints)
-            return
-        else:
-            if node.left:
-                _build_associated_range_y_tree(node.left)
-            if node.right:
-                _build_associated_range_y_tree(node.right)
+            list_y_intervals_tuple_segment = list(
+                chain.from_iterable(
+                    map(
+                        lambda segment: [
+                            (segment.y_interval.left, segment),
+                            (segment.y_interval.right, segment)
+                        ],
+                        node.segments
+                    )
+                )
+            )
+            y_intervals_segment_map = defaultdict(set)
+            for point, segment in list_y_intervals_tuple_segment:
+                y_intervals_segment_map[point].add(segment)
+
+            node.segments = build_associated_tree(
+                all_y_endpoints, y_intervals_segment_map)
+
+        if node.left:
+            _build_associated_range_y_tree(node.left)
+        if node.right:
+            _build_associated_range_y_tree(node.right)
 
     x_intervals_of_segments = list(
         map(lambda segment: segment.x_interval, segments))
