@@ -455,14 +455,14 @@ def query_segment_tree(node, query, segment_to_report=set()):
 def query_2d_segment_tree(node, query=Segment, segment_to_report=set()):
     # optimization for tree search
     # linear search
-    for segment in node.segments:
-        if segment.y_interval.left in query.y_interval or segment.y_interval.right in query.y_interval:
-            segment_to_report.add(segment)
+    # for segment in node.segments:
+    #     if segment.y_interval.left in query.y_interval or segment.y_interval.right in query.y_interval:
+    #         segment_to_report.add(segment)
 
-    # if node.segments:
-    #     segment_to_report.update(
-    #         search_in_range_1d(node.segments, range=query.y)
-    #     )
+    if node.segments:
+        segment_to_report.update(
+            search_in_range_1d(node.segments, range=query.y)
+        )
 
     if not node.is_leaf():
         if query.x_interval.left in node.left.value:
@@ -542,7 +542,7 @@ def build_2d_segment_tree(segments=[]):
     # insert_segment_on_segment_tree(segment_tree, segments[0])
 
     # tree search
-    # _build_associated_range_y_tree(segment_tree)
+    _build_associated_range_y_tree(segment_tree)
 
     # build a range tree on flatten points of y_intervals
     # then, map every segment to those points ..not optmal, but ok
