@@ -1,13 +1,13 @@
-import math
 from math import floor, log2
 from queue import Queue
+import math
 from pprint import pprint
 from numbers import Number
 from random import randint
 from functools import reduce
 from itertools import chain
 from collections import defaultdict, OrderedDict
-import svgwrite
+# import svgwrite
 import xml.etree.ElementTree as ET
 
 
@@ -56,10 +56,14 @@ class Interval:
             # TODO - check if an interval is cotained by another
             return True
 
-        return self.closed == 'both' and self.left <= value <= self.right or        \
-            self.closed == 'neither' and self.left < value < self.right or          \
-            self.closed == 'left' and self.left <= value < self.right or            \
-            self.closed == 'right' and self.left < value <= self.right
+        if self.closed_left and self.closed_right:
+            return self.left <= value <= self.right
+        elif self.closed_left and not self.closed_right:
+            return self.left <= value < self.right
+        elif self.closed_right and not self.closed_left:
+            return self.left < value <= self.right
+        else:
+            return self.left < value < self.right
 
     def union(self, target):
         # segment1 = Interval(-math.inf, -6, 'right')
@@ -99,17 +103,24 @@ class Interval:
 
     # ]-inf, -6] interset [-6, -5]
     def intersect(self, target):
-        if target.closed_left and target.closed_right:
-            return target.left in self or target.right in self
-        elif target.closed_left:
+        if self.closed_left and self.closed_right:
+            return target.left in self or target.right in self or \
+                self.left in target or self.right in target
+        elif self.closed_left:
             return target.left in self or \
-                self.left < target.right < self.right
-        elif target.closed_right:
+                self.left in target or \
+                self.left < target.right < self.right or \
+                target.left < self.right < target.right
+        elif self.closed_right:
             return target.right in self or \
-                self.left < target.left < self.right
+                self.right in target or \
+                self.left < target.left < self.right or \
+                target.left < self.left < target.right
         else:
             return target.left < self.left < target.right or \
-                target.left < self.right < target.right
+                target.left < self.right < target.right or \
+                self.left < target.left < self.right or \
+                self.left < target.right < self.right
 
     def contains(self, target):
         if self.closed_left and self.closed_right:
@@ -144,8 +155,17 @@ class Segment:
     def __repr__(self):
         return 'x : [{},{}], y :[{}, {}]'.format(self.x.min, self.x.max, self.y.min, self.y.max)
 
-    def __getitem__(self, name):
-        return getattr(self, name)
+    def __hash__(self):
+        return hash(str(self))
+
+    # def __getitem__(self, name):
+    #     if name == 0:
+    #         return self.x
+    #     elif name == 1:
+    #         return self.y
+
+    def __eq__(self, o):
+        return self.x_interval == o.x_interval and self.y_interval == o.y_interval
 
     def __setitem__(self, name, value):
         return setattr(self, name, value)
@@ -162,12 +182,13 @@ class Node:
     left = None
     right = None
     value = None
-    segments = []
+    segments = None
 
     def __init__(self, value=None):
         self.value = value
         self.left = None
         self.right = None
+        self.segments = set()
 
     def is_leaf(self):
         return self.left is None and self.right is None
@@ -363,7 +384,7 @@ def insert_interval_on_segment_tree(node, interval):
 
 def insert_segment_on_segment_tree(node, segment=Segment):
     if segment.x_interval.contains(node.value):
-        node.segments = [*node.segments, segment]
+        node.segments.add(segment)
     elif not node.is_leaf():
         if node.left.value.intersect(segment.x_interval):
             insert_segment_on_segment_tree(node.left, segment)
@@ -448,6 +469,7 @@ def query_2d_segment_tree(node, query=Segment, segment_to_report=set()):
             query_2d_segment_tree(node.left, query, segment_to_report)
         else:
             query_2d_segment_tree(node.right, query, segment_to_report)
+
     return segment_to_report
 
 
@@ -517,6 +539,7 @@ def build_2d_segment_tree(segments=[]):
 
     for segment in segments:
         insert_segment_on_segment_tree(segment_tree, segment)
+    # insert_segment_on_segment_tree(segment_tree, segments[0])
 
     # tree search
     # _build_associated_range_y_tree(segment_tree)
@@ -573,4 +596,5 @@ segment_tree = build_2d_segment_tree(segments)
 # print(segment_tree)
 
 inside = query_2d_segment_tree(segment_tree, line_query)
-print('segments inside: ', inside)
+for seg in inside:
+    print(seg)
