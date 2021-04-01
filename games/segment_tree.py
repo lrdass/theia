@@ -9,11 +9,17 @@ from itertools import chain
 from collections import defaultdict, OrderedDict
 import svgwrite
 import xml.etree.ElementTree as ET
+from copy import copy
 
 
 class Interval:
     left = None
     right = None
+
+    class Range:
+        def __init__(self, min_value, max_value):
+            self.min = min_value
+            self.max = max_value
 
     def __init__(self, left=0, right=0, closed='neither'):
         _closed_types = {'right', 'left', 'both', 'neither'}
@@ -145,12 +151,16 @@ class Segment:
     x_interval = Interval()
     y = None
     y_interval = Interval()
+    p1=(0,0)
+    p2=(0,0)
 
     def __init__(self, x_range=(-math.inf, math.inf), y_range=(-math.inf, math.inf)):
         self.x = self.Range(min(x_range), max(x_range))
         self.y = self.Range(min(y_range), max(y_range))
         self.x_interval = Interval(self.x.min, self.x.max, 'both')
         self.y_interval = Interval(self.y.min, self.y.max, 'both')
+        self.p1 = (self.x.min, self.y.min)
+        self.p2 = (self.x.max, self.y.max)
 
     def __repr__(self):
         return 'x : [{},{}], y :[{}, {}]'.format(self.x.min, self.x.max, self.y.min, self.y.max)
@@ -182,7 +192,7 @@ class Node:
     left = None
     right = None
     value = None
-    segments = None
+    segments = set()
 
     def __init__(self, value=None):
         self.value = value
@@ -289,6 +299,20 @@ def find_split_node(node=Node, range=Segment.Range):
     while not no.is_leaf():
         if range.max <= no.value or range.min > no.value:
             if range.max <= no.value:
+                no = no.left
+            else:
+                no = no.right
+        else:
+            break
+
+    return no
+
+def find_split_node_mod(node=Node, range=Interval.Range):
+    no = node
+
+    while not no.is_leaf():
+        if range.max <= no.value  or range.min >= no.value:
+            if range.max <= no.value :
                 no = no.left
             else:
                 no = no.right
@@ -410,7 +434,7 @@ def search_in_range_1d(tree, range=Segment.Range):
     inside = []
 
     if split.is_leaf():
-        if range.min <= split.value[axis] <= range.max:
+        if range.min <= split.value <= range.max:
             inside.append(split.value)
     else:
         no = split.left
@@ -552,6 +576,9 @@ def build_2d_segment_tree(segments=[]):
 
 
 
+
+
+
 segments = [Segment((-3, -1), (0, 1)), Segment((-2, 1), (0, -8)),
             Segment((1, 5), (1, -2)), Segment((6, 7), (-4, 2))]
 # generating a list of x_intervals of the list of segments
@@ -570,32 +597,34 @@ segments = [Segment((-3, -1), (0, 1)), Segment((-2, 1), (0, -8)),
 
 # create_svg_segments("segments_random.svg")
 
-svg_tree = read_svg_file("segments_to_study.svg")
-segments = [line_to_segment(line) for line in svg_tree.iter(
-    '{http://www.w3.org/2000/svg}line')
-]
-segments = [segment for segment in segments
-            if segment]
+# svg_tree = read_svg_file("segments_to_study.svg")
+# segments = [line_to_segment(line) for line in svg_tree.iter(
+#     '{http://www.w3.org/2000/svg}line')
+# ]
+# segments = [segment for segment in segments
+#             if segment]
 
-line_query = None
-for line in svg_tree.iter('{http://www.w3.org/2000/svg}line'):
-    try:
-        if line.attrib['id'] == 'query-line':
-            p1 = (int(line.attrib['x1']), int(line.attrib['x2']))
-            p2 = (int(line.attrib['y1']), int(line.attrib['y2']))
-            line_query = Segment(p1, p2)
-    except:
-        continue
+# line_query = None
+# for line in svg_tree.iter('{http://www.w3.org/2000/svg}line'):
+#     try:
+#         if line.attrib['id'] == 'query-line':
+#             p1 = (int(line.attrib['x1']), int(line.attrib['x2']))
+#             p2 = (int(line.attrib['y1']), int(line.attrib['y2']))
+#             line_query = Segment(p1, p2)
+#     except:
+#         continue
 
 
-pprint(segments)
-print('line query', line_query)
+# pprint(segments)
+# print('line query', line_query)
 
 
 # print('build segment tree')
-segment_tree = build_2d_segment_tree(segments)
+# segment_tree = build_2d_segment_tree(segments)
 # print(segment_tree)
 
-inside = query_2d_segment_tree(segment_tree, line_query)
-for seg in inside:
-    print(seg)
+# inside = query_2d_segment_tree(segment_tree, line_query)
+# for seg in inside:
+    # print(seg)
+
+# colorize_segments_inside(inside, svg_tree)
