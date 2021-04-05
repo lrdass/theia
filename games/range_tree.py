@@ -6,8 +6,11 @@ import svgwrite
 import random
 from itertools import chain
 from functools import reduce
+from collections import defaultdict
+import pdb
 
 from segment_tree import Segment
+import gc
 
 
 class Node:
@@ -123,44 +126,47 @@ def build_binary_tree(points=[]):
 
 def search_in_range_1d(tree, range=Interval.Range, axis=1):
     split = find_split_node(tree, range)
-    inside = []
+    inside = {}
 
     if split.is_leaf():
         if range.min <= split.value[axis] <= range.max:
-            inside.append(split.value)
+            inside[split.value] = split.value
     else:
         no = split.left
         while not no.is_leaf():
             if range.min <= no.value:
-                inside.extend(report_subtree(node=no.right))
+                inside.update(report_subtree(node=no.right))
                 no = no.left
             else:
                 no = no.right
         # aqui ta chegando uma tupla
         if range.min < no.value[axis] <= range.max:
-            inside.append(no.value)
-
+            inside[no.value] = no.value
         no = split.right
         while not no.is_leaf():
             if range.max > no.value:
-                inside.extend(report_subtree(node=no.left))
+                inside.update(report_subtree(node=no.left))
                 no = no.right
             else:
                 no = no.left
         if range.min < no.value[axis] <= range.max:
-            inside.append(no.value)
+            inside[no.value] = no.value
 
-    return set(inside)
+    ret_inside = inside
+    del inside
+    return ret_inside
 
 
-def report_subtree(node=Node, points=[]):
+def report_subtree(node=Node, points={}):
     if node.is_leaf():
-        points.append(node.value)
+        points[node.value] = node.value
     else:
         report_subtree(node.left, points)
         report_subtree(node.right, points)
 
-    return set(points)
+    ret_pts = points
+    del points
+    return ret_pts
 
 
 def find_split_node(node=Node, range=Interval.Range):
@@ -213,61 +219,41 @@ def build_2d_range_tree(points=[]):
         return no
 
 
-def search_in_range_2d(tree=Node, query=Interval):
-    x_split = find_split_node(tree, query.x)
-    inside = []
-
-    if x_split.is_leaf() and query.x.min <= x_split.value <= query.x.max:
-        inside.append(x_split.value)
-    else:
-        no = x_split.left
-        while not no.is_leaf():
-            if query.x.min <= no.value:
-                points_inside = search_in_range_1d(
-                    no.right.associated, query.y)
-                inside.extend(points_inside)
-                no = no.left
-            else:
-                no = no.right
-        if query.x.min <= no.value[0] < query.x.max  \
-                and query.y.min <= no.value[1] < query.y.max:
-            inside.append(no.value)
-
-        no = x_split.right
-        while not no.is_leaf():
-            if query.x.max > no.value:
-                points_inside = search_in_range_1d(no.left.associated, query.y)
-                inside.extend(points_inside)
-                no = no.right
-            else:
-                no = no.left
-        if query.x.min <= no.value[0] <= query.x.max and \
-                query.y.min <= no.value[1] <= query.y.max:
-            inside.append(no.value)
-
-    return set(inside)
-
 '''
     This method builds the 2d range tree based on the segments in relation to the extreme points
     of the segement. The leafs are the segments itself, so, some changes were required.
 '''
+
+
 def build_2d_segment_range_tree(segments=[]):
-    all_points = list(chain.from_iterable(map(lambda segment: [segment.p1, segment.p2], segments)))
+    all_points = list(map(lambda segment: segment.o_p1, segments))
     all_points_sorted = sorted(all_points, key=lambda point: point[0])
 
     # this is bad design
-    point_segment_map = dict([(segment.p1, segment) for segment in segments])
-    point_segment_map.update(dict([(segment.p2, segment) for segment in segments]))
+    # update this to dict{point: segments}
+    list_tuple_point_segment = list(
+        chain.from_iterable(
+            map(
+                lambda segment:
+                    [(segment.o_p1, segment), (segment.o_p2, segment)],
+                    segments
+            )
+        )
+    )
+
+    point_segment_map = defaultdict(list)
+    for point, segment in list_tuple_point_segment:
+        point_segment_map[point].append(segment)
 
     def build_range_tree(points, point_segment_map={}):
         y_tree = build_associated_tree(copy(points))
 
         n = len(points)
         sorted_points = sorted(points, key=lambda point: point[0])
-        mid_point = int( (n-1)/2 )
+        mid_point = int((n-1)/2)
 
         if n == 1:
-            no = Node(points.pop()) 
+            no = Node(points.pop())
             no.associated = y_tree
             return no
         else:
@@ -282,78 +268,46 @@ def build_2d_segment_range_tree(segments=[]):
     return tree
 
 
-
-
-def search_in_range_2d_segments(tree=Node, query=Interval, leftmost=False, rightmost=False, all_points=False):
+def search_in_range_2d_segments(tree=Node, query=Interval):
     x_split = find_split_node(tree, query.x)
-    inside = []
+    inside = {}
 
-    if x_split.is_leaf() and query.x.min <= x_split.value <= query.x.max:
-        inside.append(x_split.value)
+    if x_split.is_leaf():
+        if query.x.min <= x_split.value[0] <= query.x.max:
+            inside[x_split.value] = x_split.value
     else:
         no = x_split.left
         while not no.is_leaf():
-            if query.x.min <= no.value:
-                points_inside = search_in_range_1d(no.right.associated, query.y)
-                inside.extend(points_inside)
+            if query.x.min < no.value:
+                points_inside = search_in_range_1d(
+                    no.right.associated, query.y)
+                inside.update(points_inside)
                 no = no.left
             else:
                 no = no.right
         if query.x.min <= no.value[0] < query.x.max  \
                 and query.y.min <= no.value[1] < query.y.max:
-            inside.append(no.value)
-        
+            inside[no.value] = no.value
+
         no = x_split.right
         while not no.is_leaf():
             if query.x.max > no.value:
                 points_inside = search_in_range_1d(no.left.associated, query.y)
-                inside.extend(points_inside)
+                inside.update(points_inside)
                 no = no.right
             else:
                 no = no.left
-        if query.x.min <= no.value[0] <= query.x.max and \
-            query.y.min <= no.value[1] <= query.y.max:
-            inside.append(no.value)
-    segments_inside = [tree.segment_map[point] for point in inside]
+        if query.x.min <= no.value[0] < query.x.max and \
+                query.y.min <= no.value[1] < query.y.max:
+            inside[no.value] = no.value
 
-    return set(segments_inside)
+    inside_segments = list(chain.from_iterable(
+        [tree.segment_map[point] for point in inside]))
+
+    del inside
+    return inside_segments
 
 
-
-def search_in_range_1d_segment(tree, range=Interval.Range, axis=1):
-    split = find_split_node(tree, range)
-    inside = [] 
-
-    if split.is_leaf():
-        # here is a leaf, and a segment
-        if range.min <= split.value.p1[axis] <= range.max:
-            inside.append(split.value)
-    else:
-        no = split.left
-        while not no.is_leaf():
-            if range.min <= no.value:
-                inside.extend(report_subtree(node=no.right))
-                no = no.left
-            else:
-                no = no.right 
-
-        # aqui ta chegando uma tupla
-        if range.min <= no.value.p1[axis] <= range.max:
-            inside.append(no.value)
-
-        no = split.right
-        while not no.is_leaf():
-            if range.max > no.value:
-                inside.extend(report_subtree(node=no.left))
-                no = no.right
-            else:
-                no = no.left 
-
-        if range.min <= no.value.p1[axis] <= range.max:
-            inside.append(no.value)
-        
-    return set(inside)
-        
 # svg_tree = read_svg_file("new_points.svg")
 # points = [circle_to_point(circle) for circle in svg_tree.iter(
     # '{http://www.w3.org/2000/svg}circle')]

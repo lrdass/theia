@@ -151,19 +151,21 @@ class Segment:
     x_interval = Interval()
     y = None
     y_interval = Interval()
-    p1=(0,0)
-    p2=(0,0)
+    p1 = (0, 0)
+    p2 = (0, 0)
 
-    def __init__(self, x_range=(-math.inf, math.inf), y_range=(-math.inf, math.inf)):
+    def __init__(self, x_range=(-math.inf, math.inf), y_range=(-math.inf, math.inf), o_p1=(0, 0), o_p2=(0, 0)):
         self.x = self.Range(min(x_range), max(x_range))
         self.y = self.Range(min(y_range), max(y_range))
         self.x_interval = Interval(self.x.min, self.x.max, 'both')
         self.y_interval = Interval(self.y.min, self.y.max, 'both')
-        self.p1 = (self.x.min, self.y.min)
-        self.p2 = (self.x.max, self.y.max)
+        # self.p1 = (self.x.min, self.y.min)
+        # self.p2 = (self.x.max, self.y.max)
+        self.o_p1 = o_p1
+        self.o_p2 = o_p2
 
     def __repr__(self):
-        return 'x : [{},{}], y :[{}, {}]'.format(self.x.min, self.x.max, self.y.min, self.y.max)
+        return 'p1 : [{},{}], p2 :[{}, {}]'.format(self.o_p1[0], self.o_p1[1], self.o_p2[0], self.o_p2[1])
 
     def __hash__(self):
         return hash(str(self))
@@ -307,12 +309,13 @@ def find_split_node(node=Node, range=Segment.Range):
 
     return no
 
+
 def find_split_node_mod(node=Node, range=Interval.Range):
     no = node
 
     while not no.is_leaf():
-        if range.max <= no.value  or range.min >= no.value:
-            if range.max <= no.value :
+        if range.max <= no.value or range.min >= no.value:
+            if range.max <= no.value:
                 no = no.left
             else:
                 no = no.right
@@ -429,40 +432,35 @@ def insert_segment_on_segment_tree(node, segment=Segment):
 """
 
 
-def search_in_range_1d(tree, range=Segment.Range):
+def search_in_range_1d(tree, range=Interval.Range, axis=1):
     split = find_split_node(tree, range)
-    inside = []
+    inside = {}
 
     if split.is_leaf():
         if range.min <= split.value <= range.max:
-            inside.append(split.value)
+            inside[split.value] = split.value
     else:
         no = split.left
         while not no.is_leaf():
             if range.min <= no.value:
-                inside.extend(report_subtree(node=no.right))
+                inside.update(report_subtree(node=no.right))
                 no = no.left
             else:
                 no = no.right
         # aqui ta chegando uma tupla
         if range.min < no.value <= range.max:
-            inside.append(no.value)
-
+            inside[no.value] = no.value
         no = split.right
         while not no.is_leaf():
             if range.max > no.value:
-                inside.extend(report_subtree(node=no.left))
+                inside.update(report_subtree(node=no.left))
                 no = no.right
             else:
                 no = no.left
         if range.min < no.value <= range.max:
-            inside.append(no.value)
+            inside[no.value] = no.value
 
-    segments_to_return = set()
-    for point in inside:
-        segments_to_return.update(tree.y_intervals_segment_map[point])
-
-    return segments_to_return
+    return inside
 
 
 def query_segment_tree(node, query, segment_to_report=set()):
@@ -476,7 +474,7 @@ def query_segment_tree(node, query, segment_to_report=set()):
     return segment_to_report
 
 
-def query_2d_segment_tree(node, query=Segment, segment_to_report=set()):
+def query_2d_segment_tree(node, query=Segment, segment_to_report=dict()):
     # optimization for tree search
     # linear search
     # for segment in node.segments:
@@ -575,10 +573,6 @@ def build_2d_segment_tree(segments=[]):
     return segment_tree
 
 
-
-
-
-
 segments = [Segment((-3, -1), (0, 1)), Segment((-2, 1), (0, -8)),
             Segment((1, 5), (1, -2)), Segment((6, 7), (-4, 2))]
 # generating a list of x_intervals of the list of segments
@@ -625,6 +619,6 @@ segments = [Segment((-3, -1), (0, 1)), Segment((-2, 1), (0, -8)),
 
 # inside = query_2d_segment_tree(segment_tree, line_query)
 # for seg in inside:
-    # print(seg)
+# print(seg)
 
 # colorize_segments_inside(inside, svg_tree)
